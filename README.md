@@ -267,9 +267,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 **Yannis TOCREAU** — Creator of Forge.
 
-[@gogetenk](https://github.com/gogetenk)
+[@gogetenk](https://yannis.blog)
 
 ---
+<img width="1408" height="768" alt="image" src="https://github.com/user-attachments/assets/16e461bd-872e-4d63-8891-3d0f0af8c537" />
 
 <p align="center">
   <em>Rest here, traveler. The forge keeps burning.</em><br>
