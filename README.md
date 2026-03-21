@@ -1,77 +1,130 @@
-# Forge — AI-Powered Development Factory
+<p align="center">
+  <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License">
+  <img src="https://img.shields.io/badge/Claude_Code-v2.1+-green.svg" alt="Claude Code">
+  <img src="https://img.shields.io/badge/Status-The_Forge_Never_Sleeps-orange.svg" alt="Status">
+</p>
 
-> Zero-trust multi-agent orchestration for building fully functional systems with Claude Code.
+<h1 align="center">Forge</h1>
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+<p align="center">
+  <strong>The factory that never sleeps.</strong><br>
+  While you're away, your agents keep building, testing, fixing, improving.<br>
+  You wake up to a better product than the one you left.
+</p>
 
 ---
 
-## What is Forge?
+## The idea
 
-Forge is a **process + tooling framework** that lets multiple AI coding agents work in parallel on the same project, without conflicts, and with strict quality guardrails.
+You describe what you want to build. You go to sleep.
 
-One **orchestrator** distributes work. Isolated **dev agents** each build one feature in their own git worktree and deliver a PR. The **human (PO)** controls the specs (Gherkin), reviews, and business decisions — never the code. Mechanical **hooks and checks** enforce every rule automatically.
+While you sleep, a dozen AI agents work in parallel — each in its own isolated workspace, each on its own task. One builds the login. Another builds the dashboard. A third writes the billing module. They don't step on each other. They don't cut corners. They can't — mechanical guardrails make it physically impossible.
 
-**Core principle: if a rule isn't enforced by a mechanism, it will be violated.** Conventions don't work with AI agents. Every critical rule has a hook, a CI check, or an automatic block.
+Every 15 minutes, an orchestrator wakes up. It checks what's done, what's stuck, what's next. It merges finished work, dispatches new agents, kills the ones going in circles. It never stops.
 
-### For what kind of project?
+When you wake up, there are PRs merged, tests green, screenshots taken. The QA agent tested every screen overnight. The Designer agent flagged a button that was 2px off. A dev agent already fixed it.
 
-- **MVP / v1** with independent modules that can be parallelized
-- **Well-defined stack** — agents need clear conventions, no improvisation
-- **Available PO** to write Gherkin specs and answer questions
-- **CI/CD in place** — the loop relies on a pipeline to validate each PR
+**The forge never goes out.** When there are no more features to build, agents start testing. When there are no more bugs, they start optimizing. When there's nothing left to optimize, they review each other's code. The fire keeps burning.
 
-Not suited for: legacy code without tests, exploratory R&D, or solo projects.
+That's Forge.
 
-### Battle-tested numbers (Vetolib MVP)
+---
+
+## What is it, concretely?
+
+Forge is a **process + tooling framework** for [Claude Code](https://claude.com/claude-code) that orchestrates multiple AI agents to build software in parallel, with zero-trust mechanical guardrails.
+
+```
+You describe your project
+       |
+       v
+   /kickoff → PO agent builds your backlog via Q&A
+       |  (writes acceptance specs + task files)
+       v
+   /forge → Orchestrator loop (every 15 min, never stops)
+       |
+       +-- Agent back-auth --------\
+       +-- Agent front-auth --------+-- each in its own
+       +-- Agent back-billing ------+-- git worktree
+       +-- Agent front-dashboard ---/
+       |
+       v
+   Copilot review → QA (screenshots) → Designer (visual check)
+       |
+       v
+   Auto-merge to develop (CI must stay GREEN)
+       |
+       v
+   No more tasks? → Agents test, optimize, review.
+   The forge never sleeps.
+```
+
+### Core principles
+
+| Principle | What it means |
+|---|---|
+| **The forge never sleeps** | Agents always find something to do — build, test, fix, optimize, review |
+| **Zero trust** | Every rule enforced by hooks and CI, never by convention. If it's not mechanical, it will be violated |
+| **BDD-first** | The PO writes specs in Gherkin before any code. Agents make them pass. That's it |
+| **Isolation** | Each agent works in its own git worktree. Impossible to break someone else's work |
+| **Fail-fast** | Blocked? Write a question and stop. Never guess, never improvise |
+
+### Numbers (Vetolib MVP — battle-tested)
 
 - **234+ tasks** completed in days, not weeks
-- **682 tests** (unit + integration + acceptance) — all green
-- **10+ agents** in parallel with zero conflicts
+- **682 tests** — all green
+- **10+ agents** in parallel, zero conflicts
+- **46 screens** tested via Playwright overnight
+- **0 human lines of code** — only specs and reviews
 
 ---
 
-## How it works
+## Getting started
 
-See [`docs/forge-overview.md`](docs/forge-overview.md) for the full process documentation with Mermaid diagrams.
+### 1. Install
 
-### Quick overview
-
-```
-Human describes the project
-       |
-       v
-   /kickoff → PO agent builds backlog via Q&A
-       |  (writes .feature specs + todo-*.md tasks)
-       v
-   /forge → Orchestrator loop (every 15 min)
-       |
-       +-- dispatches Agent back-auth (worktree)
-       +-- dispatches Agent front-auth (worktree, MSW mocks)
-       +-- dispatches Agent back-agenda (worktree)
-       +-- ...N agents in parallel
-       |
-       v
-   Each agent creates a PR towards develop
-       |
-       v
-   Copilot review → QA agent (Playwright) → Designer agent
-       |
-       v
-   Merge to develop (CI must stay GREEN)
+```bash
+git clone https://github.com/gogetenk/forge.git
+cd your-project
+bash /path/to/forge/bin/forge-init.sh
 ```
 
-### Key concepts
+The init script auto-detects your stack, asks a few questions, and sets up everything.
 
-| Concept | Description |
-|---|---|
-| **BDD-first** | PO writes `.feature` files before any code. Agents make them pass. |
-| **Zero trust** | Every rule enforced by hooks/CI, never by convention |
-| **File-based tasks** | `todo-*.md` → `wip-*.md` → `done-*.md` (atomic rename = state transition) |
-| **Worktree isolation** | Each agent works in its own git worktree, own branch, own PR |
-| **MSW-first** | Frontend starts immediately with mock API (Mock Service Worker) |
-| **QA + Designer** | Playwright screenshots validate behavior AND visual consistency |
-| **Fail-fast** | Agent blocked? Writes to `questions/` and stops |
+### 2. Describe your project
+
+```bash
+claude
+/kickoff
+```
+
+The PO agent leads a Q&A session. You describe your product in plain language. It produces the full backlog: acceptance specs (`.feature`) and task files (`todo-*.md`) with dependencies.
+
+### 3. Light the forge
+
+```bash
+/loop 15m /forge
+```
+
+Go grab a coffee. Or go to sleep. The forge takes it from here.
+
+---
+
+## What happens while you sleep
+
+```
+ 00:00  Orchestrator wakes up. 12 tasks ready. Dispatches 12 agents.
+ 00:15  8 PRs created. Copilot reviews them. 2 have suggestions → flagged.
+ 00:30  QA agent tests the 6 merged screens. Takes 47 screenshots.
+        Designer agent flags a color inconsistency on the billing page.
+ 00:45  Orchestrator creates fix task. Dev agent patches it in 3 minutes.
+ 01:00  All screens green. No more feature tasks. Agents start testing edge cases.
+ 01:15  QA finds a responsive bug on mobile. Fix task created and dispatched.
+ 01:30  Zero bugs remaining. Agents review each other's code for DRY violations.
+ ...
+ 07:00  You wake up. 34 tasks done. All tests green. 12 PRs merged.
+        The forge kept the fire burning all night.
+```
 
 ---
 
@@ -79,118 +132,80 @@ Human describes the project
 
 ```
 forge/
+├── bin/
+│   └── forge-init.sh              # Interactive setup wizard
 ├── docs/
-│   └── forge-overview.md          # Full process doc with Mermaid diagrams
+│   ├── forge-overview.md          # Full process doc with Mermaid diagrams
+│   ├── getting-started.md         # Zero to first build guide
+│   ├── troubleshooting.md         # Lessons learned from production
+│   └── roadmap.md                 # What's next
 ├── agents/
-│   ├── orchestrator.md            # Orchestrator behavior and loop
-│   ├── po.md                      # PO agent (kickoff Q&A + ongoing questions)
-│   ├── qa.md                      # QA agent (Playwright + screenshots)
-│   └── designer.md                # Designer agent (visual consistency)
+│   ├── orchestrator.md            # The conductor — never codes, always watches
+│   ├── po.md                      # Product Owner — writes specs, answers questions
+│   ├── qa.md                      # QA — Playwright screenshots, behavior validation
+│   └── designer.md                # Designer — visual consistency, design system
 ├── hooks/
-│   ├── guard-feature.sh           # Blocks technical jargon in .feature files
+│   ├── guard-feature.sh           # Blocks technical jargon in specs
 │   ├── guard-shared.sh            # Blocks writes to frozen files
 │   └── verify-before-push.sh      # Build + tests must pass before push
 ├── templates/
-│   ├── settings.json              # Claude Code settings with hooks configured
+│   ├── settings.json              # Claude Code settings with hooks
 │   ├── task-template.md           # Task file template
-│   └── claude-md-template.md      # CLAUDE.md rules template
+│   └── claude-md-template.md      # Project rules template
 ├── commands/
-│   ├── forge.md                   # /forge slash command
-│   ├── dev.md                     # /dev slash command
-│   ├── status.md                  # /status slash command
-│   ├── po.md                      # /po slash command (ongoing questions)
-│   └── kickoff.md                 # /kickoff slash command (initial backlog)
-├── NOTICE                         # Attribution notice (required by Apache 2.0)
-├── LICENSE                        # Apache License 2.0
+│   ├── kickoff.md                 # /kickoff — bootstrap the backlog
+│   ├── forge.md                   # /forge — run the orchestrator
+│   ├── dev.md                     # /dev — launch a single agent
+│   ├── status.md                  # /status — quick factory status
+│   └── po.md                      # /po — handle business questions
+├── examples/
+│   ├── dotnet-nextjs/             # .NET + Next.js (battle-tested)
+│   ├── node-react/                # Node.js + React + Cucumber.js
+│   ├── python-fastapi/            # Python + FastAPI + behave
+│   └── go-htmx/                   # Go + htmx + godog
+├── NOTICE                         # Attribution
+├── LICENSE                        # Apache 2.0
+├── CONTRIBUTING.md
 └── README.md
 ```
 
 ---
 
-## Getting started
+## Adapting to your stack
 
-### 1. Copy the structure into your project
+Forge is **stack-agnostic**. The orchestration layer (task lifecycle, agent dispatch, QA gates, hooks) works the same regardless of your tech. You adapt:
 
-```bash
-# Clone forge
-git clone https://github.com/gogetenk/forge.git
-
-# Copy agents, hooks, and commands to your project
-cp -r forge/agents/ your-project/agents/
-cp -r forge/hooks/ your-project/.claude/hooks/
-cp -r forge/commands/ your-project/.claude/commands/
-cp forge/templates/settings.json your-project/.claude/settings.json
-```
-
-### 2. Adapt CLAUDE.md
-
-Use `templates/claude-md-template.md` as a starting point. Fill in your stack, modules, and frozen files.
-
-### 3. Kickoff — build your backlog with the PO agent
-
-Don't create tasks or .feature files manually. Describe your project, and the PO agent builds the complete backlog with you through a structured Q&A.
-
-```bash
-claude
-# Then type:
-/kickoff
-```
-
-The PO agent will:
-- Ask you to describe your project and target users
-- Ask clarifying questions about modules, roles, business rules
-- Write all `.feature` files (pure natural language acceptance criteria)
-- Create all `todo-*.md` task files with dependencies
-- Present the complete backlog for your validation
-
-See [`docs/getting-started.md`](docs/getting-started.md) for a full example session.
-
-### 4. Launch the factory
-
-```bash
-# Single cycle
-/forge
-
-# Continuous loop (every 15 min)
-/loop 15m /forge
-```
-
----
-
-## Adapting Forge to your stack
-
-Forge is **stack-agnostic** in its orchestration layer. The examples use .NET + Next.js, but the process works with any stack. You need to adapt:
-
-| What to adapt | Where |
+| What | Where |
 |---|---|
-| Build/test commands | `hooks/verify-before-push.sh`, `CLAUDE.md` |
-| Test framework | `.feature` location, step definitions format |
-| Frontend mock strategy | MSW or equivalent |
-| CI pipeline | Your CI/CD tool |
-| Frozen files list | `CLAUDE.md` + `hooks/guard-shared.sh` |
+| Build/test commands | `hooks/verify-before-push.sh` |
+| BDD framework | Reqnroll, Cucumber.js, behave, godog — your pick |
+| Frontend mocks | MSW or equivalent |
+| Frozen files | `hooks/guard-shared.sh` |
 
-The **process** (orchestrator loop, task lifecycle, QA/Designer gates, zero-trust hooks) stays the same regardless of stack.
+See `examples/` for ready-to-use configs.
 
 ---
 
 ## Contributing
 
-Contributions welcome. Please open an issue before submitting a PR for significant changes.
+The forge is open. Contributions welcome — especially stack examples, hook improvements, and battle-tested troubleshooting tips.
 
-All contributions are under the Apache License 2.0. See [NOTICE](NOTICE) for attribution requirements.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
 ## Author
 
-**Yannis TOCREAU** — Creator and maintainer of Forge.
+**Yannis TOCREAU** — Creator of Forge.
 
-- GitHub: [@gogetenk](https://github.com/gogetenk)
+[@gogetenk](https://github.com/gogetenk)
 
 ---
 
-## License
+<p align="center">
+  <em>The forge never sleeps. Your product gets better every hour, even while you dream.</em>
+</p>
 
-Apache License 2.0 — see [LICENSE](LICENSE).
+---
 
-Copyright 2026 Yannis TOCREAU. See [NOTICE](NOTICE) for details.
+Apache License 2.0 — Copyright 2026 Yannis TOCREAU. See [NOTICE](NOTICE).
