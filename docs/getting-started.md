@@ -68,78 +68,84 @@ Edit `.claude/hooks/guard-shared.sh` and update the frozen paths regex:
 if echo "$FILE_PATH" | grep -qE "^src/core/|/migrations/"; then
 ```
 
-## Step 4 — Configure settings.json
+## Step 4 — Kickoff: build your backlog with the PO agent
 
-Edit `.claude/settings.json` and update `worktree.sparsePaths` to match your project:
-
-```json
-"worktree": {
-  "sparsePaths": [
-    "src/",
-    "tests/",
-    "agents/",
-    "tasks/",
-    "CLAUDE.md"
-  ]
-}
-```
-
-## Step 5 — Write your first .feature files
-
-The PO writes Gherkin specs describing expected behavior:
-
-```gherkin
-# tests/features/auth/login.feature
-Feature: User authentication
-
-  Scenario: Valid credentials grant access
-    Given a registered user with email "user@example.com"
-    When the user logs in with valid credentials
-    Then the user is authenticated
-
-  Scenario: Invalid credentials are rejected
-    Given a registered user with email "user@example.com"
-    When the user logs in with wrong password
-    Then the login is rejected
-    And an error message is displayed
-```
-
-## Step 6 — Create your first tasks
+**This is the key step.** You don't create tasks manually — you describe your project to the PO agent, and it builds the complete backlog with you through a structured Q&A.
 
 ```bash
-cat > tasks/todo-back-auth-001.md << 'EOF'
-# todo-back-auth-001.md — Implement authentication
-
-**Dependencies**: none
-**Skills**: your-stack-specific-skills
-
-## Objective
-Implement login endpoint with email/password validation.
-
-## Gherkin
-See tests/features/auth/login.feature
-
-## Completion criteria
-- [ ] All Gherkin scenarios GREEN
-- [ ] Unit tests GREEN
-- [ ] PR created towards develop
-EOF
-```
-
-## Step 7 — Launch Forge
-
-```bash
-# Start Claude Code
 claude
+# Then type:
+/kickoff
+```
 
-# Run a single cycle
+The PO agent will:
+1. Ask you to describe your project (what it does, who it's for)
+2. Ask clarifying questions about modules, roles, business rules, edge cases
+3. Propose a module breakdown for your validation
+4. Write all `.feature` files in natural language (your acceptance criteria)
+5. Create all `todo-*.md` task files with proper dependencies
+6. Present the complete backlog with a dependency graph
+
+**Example session:**
+
+```
+You:  /kickoff
+
+PO:   Tell me about your project. What does it do, who is it for?
+
+You:  It's a veterinary clinic management app for the UAE market.
+      Vets manage appointments, medical records, billing. Pet owners
+      can book online. Multi-tenant — each clinic is isolated.
+
+PO:   Great. A few questions:
+      - What user roles? (vet, receptionist, owner, admin?)
+      - Is billing per-consultation or subscription?
+      - What languages? English + Arabic?
+      - Any regulatory requirements?
+
+You:  Roles: vet, receptionist, assistant, owner, admin.
+      Billing per-consultation with VAT 5%.
+      English first, Arabic later. No specific regulation yet.
+
+PO:   Here's my proposed module breakdown:
+      1. Auth — signup, login, RBAC, multi-tenant
+      2. Agenda — appointments, calendar, availability
+      3. Patients — pet registry, owner management
+      4. Medical Records — consultations, prescriptions
+      5. Billing — invoices, payments, PDF
+      6. Notifications — email, SMS reminders
+      Does this look right? Anything missing?
+
+You:  Add a Dashboard module for clinic analytics. Otherwise good.
+
+PO:   Writing .feature files and tasks...
+      [creates 40+ .feature scenarios across 7 modules]
+      [creates 25+ todo-*.md task files with dependencies]
+
+      Backlog ready:
+      - 7 modules, 27 tasks
+      - Max parallelism: 12 agents
+      - Critical path: scaffold → auth → agenda → wire
+      Ready for /forge?
+
+You:  /forge
+```
+
+**Important:** Don't rush the Q&A. The better the PO understands your domain, the better the .feature files, and the less the agents will deviate.
+
+## Step 5 — Launch the factory
+
+Once the backlog is ready:
+
+```bash
+# Run a single cycle to verify everything works
 /forge
 
-# Or start the continuous loop (every 15 min)
+# Then start the continuous loop
 /loop 15m /forge
 ```
 
-## Step 8 — Monitor
+## Step 6 — Monitor
 
 ```bash
 # Quick status
@@ -148,22 +154,29 @@ claude
 # Check progress
 cat progress.md
 
-# Check for blocked agents
+# Check for blocked agents with business questions
 cat questions/*.md
+
+# Answer questions (as PO)
+/po
 ```
 
 ## What happens next
 
 The orchestrator will:
 1. Check develop CI is GREEN
-2. Find your `todo-back-auth-001.md` task
-3. Rename it to `wip-back-auth-001.md` (claim)
-4. Dispatch an agent in an isolated worktree
-5. The agent reads the task + .feature, implements, tests, creates a PR
+2. Find ready `todo-*.md` tasks (dependencies satisfied)
+3. Rename to `wip-*.md` (claim)
+4. Dispatch dev agents in isolated worktrees (max parallelism)
+5. Each agent reads its task + .feature, implements via TDD, creates a PR
 6. Copilot reviews the PR automatically
-7. If all checks pass → orchestrator merges
-8. Rename to `done-back-auth-001.md`
+7. QA agent validates with Playwright screenshots
+8. Designer agent checks visual consistency
+9. If all green → orchestrator merges
+10. Rename to `done-*.md`
+11. When back + front are both done → auto-creates wire task
+12. Repeat every 15 minutes
 
 ## Troubleshooting
 
-See [troubleshooting.md](troubleshooting.md) for common issues.
+See [troubleshooting.md](troubleshooting.md) for common issues and lessons learned.

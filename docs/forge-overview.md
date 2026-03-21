@@ -325,13 +325,14 @@ flowchart LR
 
 ## Commandes
 
-| Commande | Effet |
-|---|---|
-| `/forge` | Cycle orchestrateur complet |
-| `/loop 15m /forge` | Cycle auto toutes les 15 min (expire apres 3j) |
-| `/status` | Etat rapide en < 10 lignes |
-| `/dev tasks/todo-xxx.md` | Lancer un agent dev sur une tache |
-| `/po` | Traiter les questions metier en attente |
+| Commande | Quand | Effet |
+|---|---|---|
+| `/kickoff` | Debut de projet | Le PO agent construit le backlog complet via Q&A |
+| `/forge` | En continu | Cycle orchestrateur complet |
+| `/loop 15m /forge` | En continu | Cycle auto toutes les 15 min (expire apres 3j) |
+| `/status` | A tout moment | Etat rapide en < 10 lignes |
+| `/dev tasks/todo-xxx.md` | Manuel | Lancer un agent dev sur une tache |
+| `/po` | Quand bloque | Traiter les questions metier en attente |
 
 ---
 

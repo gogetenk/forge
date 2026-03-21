@@ -38,15 +38,17 @@ See [`docs/forge-overview.md`](docs/forge-overview.md) for the full process docu
 ### Quick overview
 
 ```
-Human (PO) writes .feature specs
+Human describes the project
        |
        v
-   Orchestrator (/forge loop every 15 min)
+   /kickoff → PO agent builds backlog via Q&A
+       |  (writes .feature specs + todo-*.md tasks)
+       v
+   /forge → Orchestrator loop (every 15 min)
        |
        +-- dispatches Agent back-auth (worktree)
        +-- dispatches Agent front-auth (worktree, MSW mocks)
        +-- dispatches Agent back-agenda (worktree)
-       +-- dispatches Agent front-agenda (worktree, MSW mocks)
        +-- ...N agents in parallel
        |
        v
@@ -81,6 +83,7 @@ forge/
 │   └── forge-overview.md          # Full process doc with Mermaid diagrams
 ├── agents/
 │   ├── orchestrator.md            # Orchestrator behavior and loop
+│   ├── po.md                      # PO agent (kickoff Q&A + ongoing questions)
 │   ├── qa.md                      # QA agent (Playwright + screenshots)
 │   └── designer.md                # Designer agent (visual consistency)
 ├── hooks/
@@ -95,7 +98,8 @@ forge/
 │   ├── forge.md                   # /forge slash command
 │   ├── dev.md                     # /dev slash command
 │   ├── status.md                  # /status slash command
-│   └── po.md                      # /po slash command
+│   ├── po.md                      # /po slash command (ongoing questions)
+│   └── kickoff.md                 # /kickoff slash command (initial backlog)
 ├── NOTICE                         # Attribution notice (required by Apache 2.0)
 ├── LICENSE                        # Apache License 2.0
 └── README.md
@@ -122,23 +126,33 @@ cp forge/templates/settings.json your-project/.claude/settings.json
 
 Use `templates/claude-md-template.md` as a starting point. Fill in your stack, modules, and frozen files.
 
-### 3. Write your first .feature files
+### 3. Kickoff — build your backlog with the PO agent
 
-The PO writes Gherkin specs in `tests/*/Features/`. These are the acceptance criteria for agents.
-
-### 4. Create task files
-
-```bash
-# One task per feature, per module
-echo "# todo-back-auth-001.md — Implement login" > tasks/todo-back-auth-001.md
-```
-
-### 5. Launch
+Don't create tasks or .feature files manually. Describe your project, and the PO agent builds the complete backlog with you through a structured Q&A.
 
 ```bash
 claude
-# Then type: /forge
-# Or for continuous: /loop 15m /forge
+# Then type:
+/kickoff
+```
+
+The PO agent will:
+- Ask you to describe your project and target users
+- Ask clarifying questions about modules, roles, business rules
+- Write all `.feature` files (pure natural language acceptance criteria)
+- Create all `todo-*.md` task files with dependencies
+- Present the complete backlog for your validation
+
+See [`docs/getting-started.md`](docs/getting-started.md) for a full example session.
+
+### 4. Launch the factory
+
+```bash
+# Single cycle
+/forge
+
+# Continuous loop (every 15 min)
+/loop 15m /forge
 ```
 
 ---
