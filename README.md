@@ -69,7 +69,7 @@ That's the last thing you do. From here, the forge runs itself:
 
 ## Key mechanisms (and why they exist)
 
-### BDD-first: Gherkin specs are the leash
+### 📋 BDD-first: Gherkin specs are the leash
 
 The PO writes acceptance criteria in Gherkin (`.feature` files) **before any code exists**. Dev agents receive these specs and have one job: make them pass. They can't deviate — if the Gherkin says "the appointment is confirmed", the agent can't decide to return a JSON payload instead. The spec IS the definition of done.
 
@@ -77,7 +77,7 @@ A hook (`guard-feature.sh`) **mechanically blocks** agents from writing technica
 
 **Problem solved:** AI agents interpret requirements loosely. Gherkin + TDD forces them to implement exactly what was specified, nothing more, nothing less.
 
-### File-based tasks: faster than any ticket system
+### 📁 File-based tasks: faster than any ticket system
 
 Tasks are markdown files. `todo-auth-001.md` → `wip-auth-001.md` → `done-auth-001.md`. A `rename` is the state transition.
 
@@ -90,13 +90,13 @@ Why not Jira/Linear/Trello? Because:
 
 **Problem solved:** Agents need fast, reliable, zero-latency task coordination. The filesystem does this better than any SaaS.
 
-### Worktree isolation: agents can't break each other
+### 🔀 Worktree isolation: agents can't break each other
 
 Each agent works in its own `git worktree` — a separate checkout of the repo on its own branch. Agent A building auth can't accidentally overwrite Agent B's billing code. They share the same repo but never touch the same files.
 
 **Problem solved:** 10+ agents writing code simultaneously would create merge hell without isolation.
 
-### Zero trust hooks: mechanical, not conventional
+### 🔒 Zero trust hooks: mechanical, not conventional
 
 Every critical rule has a bash hook that blocks violations **before they happen**:
 - Write to a frozen file? → Blocked by `guard-shared.sh`
@@ -105,7 +105,7 @@ Every critical rule has a bash hook that blocks violations **before they happen*
 
 **Problem solved:** AI agents don't follow conventions reliably. Mechanical blocks are the only reliable enforcement.
 
-### MSW-first: frontend doesn't wait for backend
+### ⚡ MSW-first: frontend doesn't wait for backend
 
 Frontend agents start immediately with Mock Service Worker (MSW) — they build against a fake API. Backend agents build the real API in parallel. When both are done, a "wire" task connects them. This doubles the parallelism.
 
