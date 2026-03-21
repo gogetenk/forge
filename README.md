@@ -1,6 +1,6 @@
 # Forge — AI-Powered Development Factory
 
-> Zero-trust multi-agent orchestration for building MVPs with Claude Code.
+> Zero-trust multi-agent orchestration for building fully functional systems with Claude Code.
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
