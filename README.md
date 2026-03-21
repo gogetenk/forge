@@ -164,6 +164,34 @@ When all feature tasks are done, the orchestrator doesn't stop. It:
 
 **You can leave Forge running indefinitely.** It will keep your product getting better.
 
+### Why it works: the reinforcement feedback loop
+
+Forge isn't just "agents running in parallel." The real mechanism is a **self-reinforcing feedback loop** — the same concept behind reinforcement learning, continuous improvement (kaizen), and biological evolution.
+
+```
+     Build
+      ↓
+    Test ← QA agent finds bugs
+      ↓
+    Fix  ← Dev agent patches
+      ↓
+   Review ← Designer/Copilot catch regressions
+      ↓
+   Learn  ← Post-mortem → new hook/rule created
+      ↓
+    Build  (next cycle, with better guardrails)
+```
+
+Each cycle makes the system **structurally better**, not just the product:
+
+- **QA finds a pattern of bugs** (e.g., agents write HTTP codes in specs) → a **hook is created** to block it mechanically → the entire class of bugs disappears forever
+- **An agent goes rogue** (spends 45 min stuck) → the orchestrator **learns the timeout** → future stuck agents are killed faster
+- **A merge breaks develop** → a **post-mortem** produces a new rule → the rule gets a hook → it can never happen again
+
+This is fundamentally different from a human team, where lessons learned fade over time. In Forge, every lesson becomes a **permanent mechanical constraint**. The system's immune system gets stronger with every failure.
+
+The analogy: traditional development is like manual farming — you plant, tend, harvest, repeat. Forge is like a **self-improving greenhouse** — it grows the crop, monitors for pests, builds better walls when pests get through, and keeps running season after season. You just decide what to grow.
+
 ---
 
 ## What is it, technically?
