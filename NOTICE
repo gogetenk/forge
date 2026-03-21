@@ -1,0 +1,13 @@
+Forge — AI-Powered Development Factory
+Copyright 2026 Yannis TOCREAU
+
+This product was created and is maintained by Yannis TOCREAU.
+Original repository: https://github.com/gogetenk/forge
+
+Forge is a process and tooling framework for orchestrating multiple AI coding
+agents (Claude Code) to build software projects in parallel, with zero-trust
+mechanical guardrails.
+
+If you use Forge or a derivative of it, you must retain this NOTICE file
+and give appropriate credit to the original author as required by the
+Apache License 2.0.
