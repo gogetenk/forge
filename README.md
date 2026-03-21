@@ -14,6 +14,9 @@
 
 ---
 
+<img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/6bb29fc9-15b8-4a51-810a-60d77f088e51" />
+
+
 ## The idea
 
 You describe what you want to build. You go to sleep.
