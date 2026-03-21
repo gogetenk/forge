@@ -67,6 +67,52 @@ That's the last thing you do. From here, the forge runs itself:
 
 ---
 
+## Key mechanisms (and why they exist)
+
+### BDD-first: Gherkin specs are the leash
+
+The PO writes acceptance criteria in Gherkin (`.feature` files) **before any code exists**. Dev agents receive these specs and have one job: make them pass. They can't deviate — if the Gherkin says "the appointment is confirmed", the agent can't decide to return a JSON payload instead. The spec IS the definition of done.
+
+A hook (`guard-feature.sh`) **mechanically blocks** agents from writing technical jargon in specs. Without it, agents drift toward `the response status is 200` instead of `the operation succeeds`. We learned this the hard way — 52 HTTP codes ended up in our Gherkin before we added the hook.
+
+**Problem solved:** AI agents interpret requirements loosely. Gherkin + TDD forces them to implement exactly what was specified, nothing more, nothing less.
+
+### File-based tasks: faster than any ticket system
+
+Tasks are markdown files. `todo-auth-001.md` → `wip-auth-001.md` → `done-auth-001.md`. A `rename` is the state transition.
+
+Why not Jira/Linear/Trello? Because:
+- **Zero network latency** — the filesystem is instant, no API calls
+- **Atomic locking** — renaming a file is atomic on any OS. No race conditions
+- **Git-native** — tasks are versioned, diffable, searchable with grep
+- **Agent-readable** — no OAuth, no SDK, no API wrapper. Just `cat tasks/todo-*.md`
+- **Human-readable** — open the folder, see the state. No dashboard needed
+
+**Problem solved:** Agents need fast, reliable, zero-latency task coordination. The filesystem does this better than any SaaS.
+
+### Worktree isolation: agents can't break each other
+
+Each agent works in its own `git worktree` — a separate checkout of the repo on its own branch. Agent A building auth can't accidentally overwrite Agent B's billing code. They share the same repo but never touch the same files.
+
+**Problem solved:** 10+ agents writing code simultaneously would create merge hell without isolation.
+
+### Zero trust hooks: mechanical, not conventional
+
+Every critical rule has a bash hook that blocks violations **before they happen**:
+- Write to a frozen file? → Blocked by `guard-shared.sh`
+- Push without passing tests? → Blocked by `verify-before-push.sh`
+- Write HTTP codes in a Gherkin spec? → Blocked by `guard-feature.sh`
+
+**Problem solved:** AI agents don't follow conventions reliably. Mechanical blocks are the only reliable enforcement.
+
+### MSW-first: frontend doesn't wait for backend
+
+Frontend agents start immediately with Mock Service Worker (MSW) — they build against a fake API. Backend agents build the real API in parallel. When both are done, a "wire" task connects them. This doubles the parallelism.
+
+**Problem solved:** Sequential front-then-back development wastes half the available agents.
+
+---
+
 ## Requirements
 
 ### What you need
