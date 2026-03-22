@@ -152,6 +152,32 @@ git worktree list
 
 ---
 
+## The forge NEVER idles (lesson learned)
+
+**If 0 tasks todo AND 0 active agents, the orchestrator MUST find work.**
+Never respond "idle" or "waiting" without first checking ALL 10 sources:
+
+1. **Unresolved audits** — read reports in docs/specs/*-AUDIT-*.md, check all critical/important findings are fixed
+2. **Pending refactoring** — read tasks/refacto/todo-*.md, dispatch the most critical
+3. **PO questions** — read questions/*.md, dispatch agents to answer
+4. **Missing tests** — handlers without unit tests, .feature without step definitions
+5. **UX audit** — dispatch UX Designer agent for a new cycle
+6. **Performance audit** — run if last one is older than a week
+7. **Security audit** — run if last one is older than a week
+8. **Business** — prepare launch deliverables (leads, outreach, content)
+9. **Innovation** — explore new ideas, R&D, market studies
+10. **Code quality** — lint warnings, dead code, unused deps, TypeScript strict
+
+**Idle is FORBIDDEN as long as any source has work.**
+A forge cycle that responds "idle" without checking all 10 sources = failure.
+
+Why this rule exists: During the Vetolib/Vetara build, the forge sat idle for hours
+responding "veille" while there were 4 unresolved UX critiques, 14 refacto tasks,
+8 lint warnings, and other actionable work. The founder had to manually tell the
+forge to stop idling. This must never happen again.
+
+---
+
 ## Absolute rules
 
 - You NEVER touch code files, features, specs, skills
@@ -160,3 +186,4 @@ git worktree list
 - **develop RED = everything blocked. Nothing happens until it's green.**
 - **Each agent = its own PR. Never push to another agent's branch.**
 - **After each merge → check develop CI. If RED → fix immediately.**
+- **The forge NEVER idles. See the 10-source checklist above.**

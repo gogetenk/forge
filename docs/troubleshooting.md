@@ -81,3 +81,35 @@
 1. Check compaction log — too many compactions = too much context
 2. Make task files more specific (exact file paths, exact scenarios)
 3. Use `worktree.sparsePaths` to limit what the agent can see
+
+## The forge goes idle while there's work to do
+
+**Symptom:** The orchestrator responds "idle" or "waiting" cycle after cycle, but there are unresolved audit findings, pending refactoring tasks, lint warnings, or other actionable work.
+
+**Root cause:** The orchestrator only checks `tasks/todo-*.md` for work. When all tasks are done, it assumes there's nothing to do. But work exists in audit reports, refacto tasks, code quality issues, and business deliverables that aren't tracked as task files.
+
+**Fix:** The orchestrator must check 10 sources of work before declaring idle (see `agents/orchestrator.md` — "The forge NEVER idles" section). This is a checklist that includes audit findings, refacto tasks, PO questions, test coverage, UX/perf/security audits, business prep, innovation, and code quality. Only after ALL 10 sources are verified empty can the forge idle.
+
+**Prevention:** This rule was added after the forge sat idle for hours during the Vetara build while 4 UX critiques, 14 refacto tasks, and 8 lint warnings were waiting. The lesson: task files are not the only source of work. Audit reports, code quality metrics, and business needs are equally valid work sources.
+
+## Agents commit on wrong branch
+
+**Symptom:** An agent commits work on a feature branch instead of the target branch, or files get lost during branch switches.
+
+**Root cause:** Multiple agents running in parallel create and switch branches. If an agent is on branch A when it writes files, those files live only on branch A. If the orchestrator then switches to develop, the files are gone.
+
+**Fix:**
+1. Always specify the exact branch in the agent prompt
+2. Agents should push immediately after committing
+3. The orchestrator should verify files exist on the target branch after merge
+4. If files are lost, check `git stash list` and other branches with `git log --all -- path/to/file`
+
+## Business documents contradict each other
+
+**Symptom:** Multiple study documents recommend different pricing, positioning, or strategy.
+
+**Root cause:** Different agents produce independent analyses without cross-referencing each other's output. Each agent optimizes for its own prompt, not for global consistency.
+
+**Fix:** Use the PO agent as a zero-trust reviewer. After business documents are produced, dispatch a PO review agent to read ALL documents and flag contradictions. This was how we caught 3 contradictory pricing grids during the Vetara build.
+
+**Prevention:** Include cross-reference instructions in agent prompts: "Read docs/studies/PRICING-STRATEGY.md before making pricing recommendations" etc.
