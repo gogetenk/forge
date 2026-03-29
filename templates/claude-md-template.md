@@ -100,6 +100,37 @@ Block immediately and create `questions/{task-id}.md` if:
 - Need to modify frozen files
 - Two approaches have failed
 
+### 7a. Circuit breaker — 3 attempts max
+
+An agent debugging a problem has **3 maximum attempts** to resolve it.
+After 3 consecutive failures on the same problem:
+- **STOP immediately** — do not keep guessing
+- Create `questions/{task-id}-debug-{timestamp}.md` documenting:
+  - What was tried (the 3 approaches)
+  - Results/errors of each attempt
+  - Hypothesis on root cause
+- Report status `FAILED` and wait for human/PO input
+
+**Why:** an agent looping on a fix consumes context and budget without progressing.
+
+### 7b. Subagent tool access fallback
+
+Subagents in isolated worktrees may lose access to certain tools (e.g., Bash for git commands).
+When blocked:
+- Report status `BLOCKED` with **exact commands** to execute
+- The orchestrator executes the commands on behalf of the agent
+- Agent prompts should include: "If tool access is denied for git commands, list exact commands and report BLOCKED."
+
+### 7c. Schema migration audit
+
+After generating any database migration (EF Core, Prisma, Alembic, Knex, etc.), the agent MUST:
+1. **Read the generated migration file** and verify it matches intent
+2. **Check for phantom operations** (altering columns that were never created, dropping tables that shouldn't be dropped)
+3. **Verify companion/metadata files exist** (e.g., `.Designer.cs` for EF Core, snapshot files)
+4. **Run the framework's "has pending changes" command** to confirm no drift
+
+**Why:** auto-generated migrations can produce phantom operations when the snapshot diverges from the actual schema.
+
 ### 8. Commit convention
 
 ```

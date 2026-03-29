@@ -143,21 +143,26 @@ cd your-project
 bash /path/to/forge/bin/forge-init.sh
 ```
 
-The init script **auto-detects your stack** (Node.js, .NET, Python, Go, Rust), asks a few questions, and generates everything: CLAUDE.md, hooks, agents, commands, settings.
+The init script copies the forge structure into your project.
 
-### 2. Kickoff — build your backlog
+### 2. Kickoff — configure agents and build your backlog
 
 ```bash
 claude
 /kickoff
 ```
 
-You describe your project in plain language. The PO agent asks clarifying questions — modules, user roles, business rules, edge cases. Then it produces:
-- **`.feature` files** — acceptance criteria in natural language (Gherkin)
-- **`todo-*.md` files** — task backlog with dependencies
-- **Dependency graph** — showing what can run in parallel
+The kickoff runs 5 phases:
 
-**Don't rush this step.** The better the PO understands your domain, the better the agents will build it.
+1. **Detect** — auto-detects your stack (Node.js, .NET, Python, Go, Rust), build/test commands, module structure, CI/CD
+2. **PO Q&A** — you describe your project in plain language, the PO agent asks clarifying questions
+3. **Instantiate agents** — templates from `templates/agents/` are customized for your stack and written to `.claude/agents/`
+4. **Generate project files** — CLAUDE.md, settings.json, hooks, directories
+5. **Build backlog** — `.feature` specs + `todo-*.md` task files with dependency graph
+
+**Don't rush step 2.** The better the PO understands your domain, the better the agents will build it.
+
+> **Manual setup alternative:** If you prefer to configure manually, copy templates from `templates/agents/` to `.claude/agents/`, replace the `{VARIABLES}` with your stack values, and customize `templates/claude-md-template.md` into your `CLAUDE.md`. The orchestrator (`agents/orchestrator.md`) works out of the box — no customization needed.
 
 ### 3. Light the forge
 

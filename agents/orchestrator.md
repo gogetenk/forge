@@ -69,6 +69,31 @@ Frontend and backend run IN PARALLEL on the same feature.
 Before dispatching N agents in parallel, check their file scopes don't overlap.
 If two tasks touch the same components → sequence them, don't parallelize.
 
+**Merge strategy for same-file tasks:**
+
+When multiple parallel tasks modify the same files (detected too late or unavoidable):
+1. Each agent works in its own worktree
+2. The orchestrator merges all worktrees into **1 branch → 1 PR**:
+   - Create a combined branch `feat/wave-{N}-{scope}`
+   - Merge each worktree sequentially, resolving conflicts
+   - Build + test the combined result
+   - Create 1 PR to develop
+3. Alternative: dispatch same-file tasks **sequentially** (wait for merge of each PR before dispatching the next)
+
+**Why:** separate PRs on the same files cause cascading merge conflicts. After merging the 1st, all others need conflict resolution → wasted cycles.
+
+**Agent status protocol:**
+
+Each agent MUST end with an explicit status in its result:
+
+| Status | Meaning | Orchestrator action |
+|---|---|---|
+| `DONE` | Task complete, PR created, tests green | Mark done, monitor PR |
+| `DONE_WITH_CONCERNS` | Complete but doubts identified | Mark done, create PO question |
+| `NEEDS_CONTEXT` | Blocked by missing business info | Create PO question, keep as WIP |
+| `BLOCKED` | Blocked by technical issue | Analyze, retry or escalate |
+| `FAILED` | 3 attempts failed (circuit breaker) | Reset to TODO, create question |
+
 ### 3. Detect wire tasks to create
 
 When a `done-back-{module}-*` AND a `done-front-{module}-*` both exist
