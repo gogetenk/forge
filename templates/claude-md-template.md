@@ -140,6 +140,23 @@ test(module): add test description
 refactor(module): refactor description
 ```
 
+### 9. Definition of Done (DOD) mandatory
+
+Every task file (`todo-*.md`) MUST include a `## Definition of Done` section with concrete, verifiable criteria. No subjective criteria ("clean code") — only binary checks the Evaluator agent can verify.
+
+The DOD is the contract between the dev agent and the evaluator. If a criterion is not in the DOD, the evaluator won't check it. If it IS in the DOD, the evaluator WILL check it and FAIL the evaluation if it's not met.
+
+Template:
+```
+## Definition of Done
+- [ ] Build passes (0 errors)
+- [ ] Tests pass (0 failures)
+- [ ] New handlers have unit tests (>=1 test per handler)
+- [ ] No hardcoded strings in UI (all through i18n)
+- [ ] data-testid on all interactive elements
+- [ ] DTO types match backend contracts
+```
+
 ---
 
 ## Frozen files

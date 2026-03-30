@@ -39,6 +39,7 @@ templates/agents/qa.md.template       → .claude/agents/qa.md
 templates/agents/po.md.template       → .claude/agents/po.md
 templates/agents/architect.md.template → .claude/agents/architect.md
 templates/agents/ux-designer.md.template → .claude/agents/ux-designer.md
+templates/agents/evaluator.md.template  → .claude/agents/evaluator.md
 ```
 
 Replace variables:
@@ -69,6 +70,11 @@ Also copy `agents/orchestrator.md` → `.claude/agents/orchestrator.md` (no vari
 Using the PO Q&A from Phase 2:
 1. Write all `.feature` files (pure natural language, zero tech)
 2. Create all task files (`tasks/todo-*.md`) with dependencies
+   - Each task MUST include a `## Definition of Done` section with concrete, binary criteria
+   - DOD criteria must be verifiable by the Evaluator agent (no subjective criteria like "clean code")
+   - At minimum: build passes, tests pass, Gherkin scenarios GREEN
+   - For frontend tasks: add i18n, data-testid, responsive checks as applicable
+   - For backend tasks: add unit test coverage, contract alignment checks as applicable
 3. Present the complete backlog with dependency graph
 4. Get human validation
 

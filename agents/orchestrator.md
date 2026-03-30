@@ -112,7 +112,22 @@ For each open PR created by an agent:
 gh pr checks <num>
 ```
 
-**5a. Check Copilot comments BEFORE merging (mandatory)**
+**5a. Dispatch Evaluator on completed agent work (mandatory)**
+
+When a dev agent reports DONE or DONE_WITH_CONCERNS:
+1. Dispatch the Evaluator agent with worktree path, task content, and agent report
+2. Wait for Evaluator result
+3. If EVAL_PASS → proceed to merge checks (5b+)
+4. If EVAL_FAIL → create fix task, re-dispatch dev agent with evaluator feedback
+5. If EVAL_PASS_WITH_NOTES → proceed to merge, create follow-up task for noted issues
+
+**The orchestrator NEVER merges without evaluator approval.**
+
+Why: Dev agents self-report DONE even with bugs. In one session, 4 blockers were found
+by a post-hoc QA review that dev agents missed (hardcoded values, untranslated strings,
+wrong API URLs, missing required fields). The evaluator catches these before merge.
+
+**5b. Check Copilot comments BEFORE merging (mandatory)**
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/{num}/reviews
@@ -122,7 +137,7 @@ gh api repos/{owner}/{repo}/pulls/{num}/comments
 - If Copilot has pertinent suggestions → do NOT merge
 - Notify: "PR #{num} has Copilot suggestions. Click 'Apply all suggestions' on GitHub."
 
-**5b. Dispatch QA + Designer on frontend PRs (mandatory)**
+**5c. Dispatch QA + Designer on frontend PRs (mandatory)**
 
 For each frontend PR with GREEN checks and Copilot handled:
 1. Dispatch a QA agent (`agents/qa.md`):
@@ -141,12 +156,12 @@ For each frontend PR with GREEN checks and Copilot handled:
 
 For **backend-only** PRs: only QA is required (no Designer).
 
-**5c. Merge if all OK**
+**5d. Merge if all OK**
 
-- If all checks GREEN AND Copilot handled AND QA_DONE AND (DESIGN_OK or backend-only) → merge (`gh pr merge <num> --squash --delete-branch`)
+- If all checks GREEN AND Evaluator EVAL_PASS AND Copilot handled AND QA_DONE AND (DESIGN_OK or backend-only) → merge (`gh pr merge <num> --squash --delete-branch`)
 - **After each merge: check develop CI within 2 minutes**
 
-**5d. Conflict resolution — merge-based, not rebase**
+**5e. Conflict resolution — merge-based, not rebase**
 
 ```bash
 # CORRECT — merge origin/develop into the branch
@@ -156,7 +171,7 @@ git merge origin/develop
 git rebase origin/develop
 ```
 
-**5e. Cleanup worktrees after merge**
+**5f. Cleanup worktrees after merge**
 
 ```bash
 git worktree prune
