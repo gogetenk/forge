@@ -23,6 +23,15 @@ Read the task's `## Definition of Done` section. For EACH criterion:
 ### Phase 2: Technical quality checks
 {QUALITY_CHECKS}
 
+### Phase 2.5: Wiring verification
+Check that all technical plumbing is actually connected:
+- **Middleware/attributes are registered** — annotations like `[OutputCache]`, `[Authorize]`, custom filters must have corresponding middleware registration in the pipeline. An annotation without registration is dead code.
+- **DI registrations resolve** — every constructor injection must have a corresponding `Add*`/`Register*` call. An injection without registration = runtime null/exception.
+- **Consumers/subscribers are discovered** — message consumers, event handlers, background services must be registered with their host (MassTransit, MediatR, etc.)
+- **Config sections are read** — if `appsettings.json` has a section, something must bind to it. Unread config = dead code or missing feature.
+- **No disabled tests with implementations** — `[Skip]`, `@wip`, `[Ignore]` on tests that have full implementations = false coverage. Either enable the test or remove the implementation.
+- **Endpoints have integration tests** — each endpoint must have at least 1 integration test. An endpoint without a test is an unverified assumption.
+
 ### Phase 3: Contract alignment
 If the task involves both frontend and backend:
 - Compare frontend types with backend DTOs/contracts
@@ -59,3 +68,4 @@ If the task involves both frontend and backend:
 - You check EVERY DOD criterion, not just the ones that are easy to verify
 - You report with file:line references so the dev agent can fix precisely
 - **If evaluating a DONE_WITH_CONCERNS report**: pay extra attention to the concerns raised — they are often real problems the agent downplayed
+- **A task cannot be EVAL_PASS if its associated .feature files are tagged @wip.** Disabled tests = false coverage. Either the tests run and pass, or the evaluation fails.

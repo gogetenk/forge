@@ -195,31 +195,35 @@ git worktree list
 ## The forge NEVER idles (lesson learned)
 
 **If 0 tasks todo AND 0 active agents, the orchestrator MUST find work.**
-Never respond "idle" or "waiting" without first checking ALL 10 sources:
+Never respond "idle" or "waiting" without first checking ALL 11 sources:
 
 1. **Unresolved audits** — read reports in docs/specs/*-AUDIT-*.md, check all critical/important findings are fixed
 2. **Pending refactoring** — read tasks/refacto/todo-*.md, dispatch the most critical
 3. **PO questions** — read questions/*.md, dispatch agents to answer
-4. **Missing tests** — handlers without unit tests, .feature without step definitions
-5. **UX audit** — dispatch UX Designer agent for a new cycle
-6. **Performance audit** — run if last one is older than a week
-7. **Security audit** — run if last one is older than a week
-8. **Business** — prepare launch deliverables (leads, outreach, content)
-9. **Innovation** — explore new ideas, R&D, market studies
-10. **Code quality** — lint warnings, dead code, unused deps, TypeScript strict
+4. **Missing tests** — handlers without unit tests, .feature without step definitions, endpoints without integration tests (empty scaffolds are bugs)
+5. **Wiring audit** — middleware annotations without registration, DI injections that resolve to null, consumers not discovered, config sections never read, disabled tests with implementations, @wip features with step definitions
+6. **UX audit** — dispatch UX Designer agent for a new cycle
+7. **Performance audit** — run if last one is older than a week
+8. **Security audit** — run if last one is older than a week
+9. **Business** — prepare launch deliverables (leads, outreach, content)
+10. **Innovation** — explore new ideas, R&D, market studies
+11. **Code quality** — lint warnings, dead code, unused deps, TypeScript strict
 
 **Idle is FORBIDDEN as long as any source has work.**
-A forge cycle that responds "idle" without checking all 10 sources = failure.
+A forge cycle that responds "idle" without checking all 11 sources = failure.
 
 **Anti-stagnation rule (v4.1):**
 
 An audit that produces findings WITHOUT creating tasks = unfinished work.
+An audit finding is NOT resolved until: (a) a task is created, (b) the task is dispatched, (c) the fix is merged, (d) a smoke test verifies the fix works. "Audited" does not mean "actioned."
+
 After each audit, the orchestrator MUST:
 1. Read the audit report
 2. Create `tasks/todo-*` for EVERY finding HIGH+ (not just CRITICAL)
 3. Dispatch independent tasks immediately
-4. The 10 sources are **cyclical** — re-scan after each wave of merges
-5. "0 TODO" NEVER means "nothing to do" — it means "create tasks"
+4. Verify each fix after merge (run the relevant test or check)
+5. The 11 sources are **cyclical** — re-scan after each wave of merges
+6. "0 TODO" NEVER means "nothing to do" — it means "create tasks"
 
 **If backlog is empty and audits have untreated findings → create tasks.**
 **If tasks are created → dispatch agents.**
@@ -241,4 +245,4 @@ instead of a cyclical process.
 - **develop RED = everything blocked. Nothing happens until it's green.**
 - **Each agent = its own PR. Never push to another agent's branch.**
 - **After each merge → check develop CI. If RED → fix immediately.**
-- **The forge NEVER idles. See the 10-source checklist above.**
+- **The forge NEVER idles. See the 11-source checklist above.**

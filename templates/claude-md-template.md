@@ -36,6 +36,10 @@ Step 4: PR only when all Gherkin scenarios are GREEN
 
 An agent that opens a PR with red tests = PR rejected automatically.
 
+### 1b. Endpoint coverage mandatory
+
+Each endpoint MUST have at least 1 integration test. Empty scaffolds (endpoints that compile but return nothing meaningful) are bugs. If an endpoint exists, a test proves it works end-to-end through the DI pipeline.
+
 ### 1a. Feature file purity
 
 **.feature files are PO property.** A dev agent never creates or modifies a .feature file.
@@ -172,6 +176,7 @@ Never modify without human arbitration:
 |---|---|---|
 | `guard-shared.sh` | Write/Edit | Blocks modification of frozen files |
 | `guard-feature.sh` | Write/Edit .feature | Blocks technical jargon |
+| `guard-wip-features.sh` | Bash `git push` | Blocks push if @wip features have step definitions |
 | `verify-before-push.sh` | Bash `git push` | Build + tests MUST pass |
 
 ---
