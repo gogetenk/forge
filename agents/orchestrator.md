@@ -196,10 +196,25 @@ Never respond "idle" or "waiting" without first checking ALL 10 sources:
 **Idle is FORBIDDEN as long as any source has work.**
 A forge cycle that responds "idle" without checking all 10 sources = failure.
 
-Why this rule exists: During the Vetolib/Vetara build, the forge sat idle for hours
-responding "veille" while there were 4 unresolved UX critiques, 14 refacto tasks,
-8 lint warnings, and other actionable work. The founder had to manually tell the
-forge to stop idling. This must never happen again.
+**Anti-stagnation rule (v4.1):**
+
+An audit that produces findings WITHOUT creating tasks = unfinished work.
+After each audit, the orchestrator MUST:
+1. Read the audit report
+2. Create `tasks/todo-*` for EVERY finding HIGH+ (not just CRITICAL)
+3. Dispatch independent tasks immediately
+4. The 10 sources are **cyclical** — re-scan after each wave of merges
+5. "0 TODO" NEVER means "nothing to do" — it means "create tasks"
+
+**If backlog is empty and audits have untreated findings → create tasks.**
+**If tasks are created → dispatch agents.**
+**If agents complete → merge and re-scan.**
+**The cycle NEVER stops.**
+
+Why this rule exists: The forge sat idle for 9 hours polling CI while 7 audit reports
+contained 40+ actionable HIGH findings that were never converted to tasks. The orchestrator
+confused "audited" with "actioned" and treated the 10 sources as a one-shot checklist
+instead of a cyclical process.
 
 ---
 
