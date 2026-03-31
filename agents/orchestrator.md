@@ -117,7 +117,7 @@ gh pr checks <num>
 When a dev agent reports DONE or DONE_WITH_CONCERNS:
 1. Dispatch the Evaluator agent with worktree path, task content, and agent report
 2. Wait for Evaluator result
-3. If EVAL_PASS → proceed to merge checks (5b+)
+3. If EVAL_PASS → proceed to merge checks (5b+, 5c+)
 4. If EVAL_FAIL → create fix task, re-dispatch dev agent with evaluator feedback
 5. If EVAL_PASS_WITH_NOTES → proceed to merge, create follow-up task for noted issues
 
@@ -127,7 +127,20 @@ Why: Dev agents self-report DONE even with bugs. In one session, 4 blockers were
 by a post-hoc QA review that dev agents missed (hardcoded values, untranslated strings,
 wrong API URLs, missing required fields). The evaluator catches these before merge.
 
-**5b. Check Copilot comments BEFORE merging (mandatory)**
+**5b. Auto-address code review comments (Copilot, SonarCloud, etc.)**
+
+Before merging any PR, the orchestrator MUST:
+1. Wait ~2min after push for automated reviewers
+2. Read PR comments: `gh api repos/{owner}/{repo}/pulls/{num}/comments`
+3. If automated reviewers (Copilot, SonarCloud) have suggestions:
+   - Dispatch an agent to apply pertinent suggestions
+   - Agent pushes fix on the same branch
+   - Re-check after fix
+4. Only merge when automated review comments are addressed
+
+**Never merge with unaddressed automated review comments.**
+
+**5c. Check Copilot comments BEFORE merging (mandatory)**
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/{num}/reviews
@@ -137,7 +150,7 @@ gh api repos/{owner}/{repo}/pulls/{num}/comments
 - If Copilot has pertinent suggestions → do NOT merge
 - Notify: "PR #{num} has Copilot suggestions. Click 'Apply all suggestions' on GitHub."
 
-**5c. Dispatch QA + Designer on frontend PRs (mandatory)**
+**5d. Dispatch QA + Designer on frontend PRs (mandatory)**
 
 For each frontend PR with GREEN checks and Copilot handled:
 1. Dispatch a QA agent (`agents/qa.md`):
@@ -156,12 +169,12 @@ For each frontend PR with GREEN checks and Copilot handled:
 
 For **backend-only** PRs: only QA is required (no Designer).
 
-**5d. Merge if all OK**
+**5e. Merge if all OK**
 
 - If all checks GREEN AND Evaluator EVAL_PASS AND Copilot handled AND QA_DONE AND (DESIGN_OK or backend-only) → merge (`gh pr merge <num> --squash --delete-branch`)
 - **After each merge: check develop CI within 2 minutes**
 
-**5e. Conflict resolution — merge-based, not rebase**
+**5f. Conflict resolution — merge-based, not rebase**
 
 ```bash
 # CORRECT — merge origin/develop into the branch
@@ -171,7 +184,7 @@ git merge origin/develop
 git rebase origin/develop
 ```
 
-**5f. Cleanup worktrees after merge**
+**5g. Cleanup worktrees after merge**
 
 ```bash
 git worktree prune

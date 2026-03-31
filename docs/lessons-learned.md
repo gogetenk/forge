@@ -85,3 +85,75 @@
 **Fix:** Added merge strategy for same-file tasks: the orchestrator either (a) merges all worktrees into 1 branch / 1 PR, resolving conflicts locally before push, or (b) sequences the tasks and waits for each merge before dispatching the next. Tasks touching the same entity are never parallelized naively.
 
 **Rule:** Tasks that touch the same entity = sequential dispatch or combined PR. Never parallel with separate PRs.
+
+---
+
+## 8. Never remove @wip tags without running the tests
+
+**What happened:** An agent removed `@wip` tags from feature files to "clean up" the test suite, but did not run the tests first. The underlying scenarios had never been green — step definitions were incomplete or broken. After removing the tags, the tests ran and failed, breaking CI on develop.
+
+**Root cause:** The agent treated `@wip` removal as a cleanup task, not a verification task. Removing `@wip` means "these tests are ready to run" — which is a claim that must be verified.
+
+**Fix:** Added rule: never remove `@wip` without first running the tagged tests locally and confirming GREEN. The `guard-wip-features.sh` hook now also catches this pattern: if step definitions exist for `@wip` scenarios, the push is blocked until the tag is removed AND the tests pass.
+
+**Rule:** Removing `@wip` = asserting the tests pass. Verify before removing.
+
+---
+
+## 9. Never batch-merge 30+ PRs without CI verification between batches
+
+**What happened:** After a productive overnight session, the orchestrator had 30+ green PRs queued. It merged them all in rapid succession without waiting for CI between merges. By the 15th merge, develop was red — a subtle conflict between two PRs that individually passed but together broke the build. The remaining 15+ PRs merged on top of a broken develop, compounding the problem.
+
+**Root cause:** The orchestrator optimized for throughput (merge everything fast) instead of correctness (verify after each merge). The "check develop CI within 2 minutes after each merge" rule existed but was skipped during batch operations.
+
+**Fix:** Merges are now batched in groups of 3-5. After each batch, the orchestrator waits for CI to confirm GREEN before proceeding. If CI fails, remaining merges are paused until the break is fixed.
+
+**Rule:** Merge in small batches (3-5 PRs max), verify CI between batches. Never merge 30+ PRs in a fire-and-forget sequence.
+
+---
+
+## 10. BDD-first must be mechanically enforced, not conventional
+
+**What happened:** Despite the "BDD-first" rule in CLAUDE.md, agents routinely created handlers and services before any test spec existed. They would write the implementation, then write the tests (or skip them). The rule was purely conventional — nothing mechanically stopped an agent from writing code first.
+
+**Root cause:** AI agents follow explicit mechanical constraints (hooks, CI gates) far more reliably than written conventions. A rule in a markdown file is a suggestion; a hook that blocks the action is a law.
+
+**Fix:** Created `guard-bdd-first.sh` hook that warns (or blocks, with `FORGE_BDD_STRICT=1`) when an agent creates a handler/service file without a corresponding test spec in the test directories.
+
+**Rule:** Every critical convention must have a corresponding hook. If a rule is important enough to write down, it's important enough to enforce mechanically.
+
+---
+
+## 11. Evaluator must be mandatory, not optional
+
+**What happened:** The evaluator agent was added as an optional step. Some agents self-reported DONE and the orchestrator merged without evaluation. Four blockers were discovered post-merge: hardcoded values, untranslated strings, wrong API URLs, and missing required fields. All would have been caught by the evaluator.
+
+**Root cause:** When the evaluator was optional, the orchestrator skipped it under time pressure (many PRs queued). The path of least resistance was to trust the dev agent's self-report.
+
+**Fix:** Made evaluator dispatch mandatory in the orchestrator (section 5a). The orchestrator NEVER merges without EVAL_PASS. No exceptions, no shortcuts.
+
+**Rule:** Quality gates must be mandatory, never optional. An optional gate will be skipped under pressure 100% of the time.
+
+---
+
+## 12. Frontend layout PRs must be sequential, not parallel
+
+**What happened:** Three frontend agents were dispatched in parallel on tasks that all modified shared layout files (sidebar, header, navigation). Each agent's changes compiled independently, but merging created cascading conflicts in CSS modules, layout components, and shared state. Resolving conflicts in generated CSS and layout code produced visual regressions.
+
+**Root cause:** The orchestrator's file overlap detection checked source files but missed shared layout components that are implicitly touched by many frontend tasks (global styles, layout wrappers, navigation state).
+
+**Fix:** Frontend tasks that touch layout/navigation/shared UI components are now dispatched sequentially. The orchestrator checks for layout file overlap before parallelizing frontend tasks.
+
+**Rule:** Frontend layout is a shared resource. Layout PRs must be sequential to avoid visual regression conflicts.
+
+---
+
+## 13. When CI quota is exhausted, local verification replaces CI
+
+**What happened:** GitHub Actions minutes were exhausted mid-session. The orchestrator kept merging PRs based on local test results alone, which worked — but then stopped merging entirely when it couldn't verify CI status, leaving 8 green PRs unmerged for hours.
+
+**Root cause:** The orchestrator treated "CI GREEN" as a hard requirement without a fallback. When CI was unavailable (quota exhausted), it had no alternative verification path and entered a waiting loop.
+
+**Fix:** Added fallback rule: when CI is unavailable (quota exhausted, GitHub outage), the orchestrator can merge based on local build+test verification, provided: (a) the full test suite passes locally, (b) the merge is logged as "locally verified, CI unavailable", and (c) CI is re-run on develop as soon as quota is restored.
+
+**Rule:** Local build+test is the primary verification. CI is the safety net. When the safety net is down, the primary verification still works — don't freeze the forge.

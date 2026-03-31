@@ -287,7 +287,9 @@ forge/
 │   ├── qa.md                      # QA — Playwright screenshots, behavior validation
 │   └── designer.md                # Designer — visual consistency, design system
 ├── hooks/
+│   ├── guard-bdd-first.sh         # Warns when creating handlers without test specs
 │   ├── guard-feature.sh           # Blocks technical jargon in specs
+│   ├── guard-merge-ci-green.sh    # Blocks merge if CI is RED on target branch
 │   ├── guard-shared.sh            # Blocks writes to frozen files
 │   ├── guard-wip-features.sh      # Blocks push if @wip features have step defs
 │   └── verify-before-push.sh      # Build + tests must pass before push

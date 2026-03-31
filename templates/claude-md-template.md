@@ -177,6 +177,8 @@ Never modify without human arbitration:
 | `guard-shared.sh` | Write/Edit | Blocks modification of frozen files |
 | `guard-feature.sh` | Write/Edit .feature | Blocks technical jargon |
 | `guard-wip-features.sh` | Bash `git push` | Blocks push if @wip features have step definitions |
+| `guard-merge-ci-green.sh` | Bash `gh pr merge` | Blocks merge if CI is RED on target branch |
+| `guard-bdd-first.sh` | Write/Edit handler/service | Warns when creating handlers without test specs |
 | `verify-before-push.sh` | Bash `git push` | Build + tests MUST pass |
 
 ---
