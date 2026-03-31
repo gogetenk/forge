@@ -157,3 +157,63 @@
 **Fix:** Added fallback rule: when CI is unavailable (quota exhausted, GitHub outage), the orchestrator can merge based on local build+test verification, provided: (a) the full test suite passes locally, (b) the merge is logged as "locally verified, CI unavailable", and (c) CI is re-run on develop as soon as quota is restored.
 
 **Rule:** Local build+test is the primary verification. CI is the safety net. When the safety net is down, the primary verification still works — don't freeze the forge.
+
+---
+
+## 14. Scale parallelism aggressively
+
+**What happened:** Early forge sessions dispatched 1-2 agents at a time, "to be safe." The orchestrator waited for each agent to finish before dispatching the next batch. An overnight session that could have completed 40 tasks only completed 12, because agents spent most of their time waiting on IO (builds, tests, API calls) while CPU and RAM sat idle.
+
+**Root cause:** Conservative parallelism inherited from human intuition — "don't overload the system." But AI agents are IO-bound, not CPU-bound. While one agent waits for `dotnet build`, another can be writing code, another can be running tests, another can be creating a PR. The bottleneck is never the machine — it's the orchestrator's willingness to dispatch.
+
+**Fix:** When CPU/RAM allows, dispatch 5-10 agents in parallel instead of 1-2. The orchestrator should maximize throughput by filling every available slot. Single-agent cycles waste time on IO waits that could overlap.
+
+**Rule:** Maximize parallelism to the hardware limit. Idle agents are wasted capacity. The forge burns brighter with more fire.
+
+---
+
+## 15. Blog index.ts is a merge conflict magnet
+
+**What happened:** Every blog article PR touched the same `index.ts` file (a static array of article metadata). With 3+ agents creating articles in parallel, every second PR had a merge conflict on that single file. Resolving conflicts in a generated index is tedious and error-prone.
+
+**Root cause:** The index file was a manually maintained static array. Every addition required appending to the same array in the same file — a classic merge conflict hotspot when multiple branches modify the same lines.
+
+**Fix:** Generate the index dynamically from the filesystem instead of maintaining a static array. Each article is self-describing (frontmatter or co-located metadata), and the index is built at build time by scanning the directory. No shared mutable file = no conflicts.
+
+**Rule:** Any file that every PR touches is a merge conflict magnet. Replace static registries with dynamic discovery (filesystem scan, convention-based loading, auto-registration).
+
+---
+
+## 16. Snapshot conflicts on same-module parallel PRs
+
+**What happened:** Two agents were dispatched in parallel on different features in the same module. Both added migrations, both modified the EF Core model snapshot. The first PR merged cleanly. The second PR had an unmergeable conflict in the snapshot file — a 5000-line auto-generated file where manual conflict resolution is almost guaranteed to produce a corrupt snapshot.
+
+**Root cause:** EF Core model snapshots are auto-generated and represent the full state of the model at migration time. Two migrations generated from the same base snapshot will produce two divergent snapshots. Unlike code conflicts, snapshot conflicts can't be resolved by picking "both sides" — the snapshot must be regenerated.
+
+**Fix:** Same-module features that touch the DbContext are dispatched sequentially (not in parallel), or consolidated into a single branch and single PR. The orchestrator detects DbContext/migration overlap at dispatch time and prevents parallel execution.
+
+**Rule:** Database migration snapshots are non-mergeable. Same-module DB features must be sequential or combined into one PR.
+
+---
+
+## 17. API overload resilience
+
+**What happened:** During peak usage, the Anthropic API returned 500 (internal error) and 529 (overloaded) responses. Agents that received these errors crashed and lost all work-in-progress — code changes, test results, and context. The orchestrator had no visibility into why an agent disappeared and couldn't distinguish "crashed from API error" from "stuck on a hard problem."
+
+**Root cause:** Agents treated API errors as fatal. There was no retry logic, no checkpoint mechanism, and no way for the orchestrator to detect the failure mode. A transient 529 (which resolves in seconds) caused the same total loss as a permanent failure.
+
+**Fix:** The orchestrator should auto-retry crashed agents with exponential backoff. Agent prompts should include: "If you receive a transient API error, retry up to 3 times with increasing delays before reporting BLOCKED." The orchestrator should also distinguish between agent states: RUNNING, BLOCKED, CRASHED, DONE.
+
+**Rule:** Transient API errors must not cause total work loss. Retry crashed agents automatically — the forge must be resilient to infrastructure hiccups.
+
+---
+
+## 18. Real-world feature discovery
+
+**What happened:** The product backlog was built entirely from competitor analysis and imagination. After visiting a real veterinary clinic, we discovered critical workflows that no competitor had implemented and that no amount of brainstorming would have surfaced: waiting room notifications for pet owners, receptionist-specific queue management, and paper-to-digital transition flows unique to the UAE market.
+
+**Root cause:** AI agents (and humans) can only generate features from patterns they've seen. Real-world observation reveals friction, workarounds, and unspoken needs that don't appear in competitor products or requirement documents.
+
+**Fix:** Before building a new module, visit a real user site (clinic, office, warehouse — whatever the domain). Spend 2-4 hours observing actual workflows. The features that come from observation are the ones that differentiate the product.
+
+**Rule:** The best features come from observation, not imagination. Visit real users before writing specs. The PO agent can structure what you observe, but it can't observe for you.
