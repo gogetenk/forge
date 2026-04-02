@@ -222,8 +222,13 @@ Never respond "idle" or "waiting" without first checking ALL 11 sources:
 10. **Innovation** — explore new ideas, R&D, market studies
 11. **Code quality** — lint warnings, dead code, unused deps, TypeScript strict
 
+12. **Live smoke test** — Start the app (Aspire/Docker), curl EVERY endpoint on a real running instance with a fresh DB. Automated tests passing ≠ app works. If the app has never been started and tested live in this session → NOT IDLE. This is the FINAL gate before IDLE.
+13. **Swagger/OpenAPI verification** — Open /swagger in the browser (or curl it). Verify the spec is valid and all endpoints appear.
+14. **Seed data verification** — Connect to the DB and verify seed data exists. Query each table.
+
 **Idle is FORBIDDEN as long as any source has work.**
-A forge cycle that responds "idle" without checking all 11 sources = failure.
+A forge cycle that responds "idle" without checking all 14 sources = failure.
+A task marked "completed" with failures in the description = NOT completed. Reopen and fix.
 
 **Anti-stagnation rule (v4.1):**
 
@@ -258,7 +263,10 @@ instead of a cyclical process.
 - **develop RED = everything blocked. Nothing happens until it's green.**
 - **Each agent = its own PR. Never push to another agent's branch.**
 - **After each merge → check develop CI. If RED → fix immediately.**
-- **The forge NEVER idles. See the 11-source checklist above.**
+- **The forge NEVER idles. See the 14-source checklist above.**
+- **"Tests GREEN" ≠ "App works".** You MUST start the app and curl every endpoint on a live instance before declaring IDLE.
+- **A task completed with failures = NOT completed.** Reopen it, dispatch a fix agent, verify GREEN, THEN mark completed.
+- **IDLE requires proof.** Before saying IDLE, list: (a) last live smoke test timestamp, (b) last curl endpoint results, (c) last DB seed verification. If any is missing → NOT IDLE.
 - You NEVER write implementation code — not even "simple" foundation changes. Dispatch a dev agent. (Lesson 19)
 - You NEVER modify .cs, .ts, .py, .go, .rs, .java source files. Your only outputs are task files, question files, and progress.md.
 - Before dispatching ANY work, verify the branch strategy exists. Create base feature branch if needed. (Lesson 21)

@@ -265,3 +265,27 @@
 **Fix:** When replacing an infrastructure layer, always start from the Domain interfaces and entities. Read only the Domain to understand what persistence is needed. Do NOT read the old Infrastructure as a reference — it will pollute the new design with legacy patterns.
 
 **Rule:** Domain is the source of truth for new infrastructure. Old infra is reference material for understanding what data exists, NOT a template for the new implementation. Build from the contract (Domain interfaces), not from the implementation (old repositories).
+
+---
+
+## 23. "Tests GREEN" does not mean "App works" — live smoke test is mandatory
+
+**What happened:** The orchestrator declared IDLE 15+ consecutive times while 948 automated tests passed. But the app had NEVER been started via Aspire and tested with curl on a live running instance with a fresh database. When the user finally asked "tu as pu faire des tests en faisant curl?", it was revealed that live E2E had never been validated — QA agents had used WebAppFactory (in-process), not a real running instance.
+
+**Root cause:** The orchestrator treated "automated tests GREEN" as equivalent to "everything works." But automated tests run in controlled environments (in-memory, Testcontainers) that bypass real infrastructure: Aspire orchestration, Docker networking, migration timing, container health checks, port binding, auth middleware with real headers. A green test suite proves code correctness, not operational readiness.
+
+**Fix:** Added 3 new sources to the anti-stagnation checklist (#12 live smoke test, #13 Swagger verification, #14 seed data verification). Added absolute rule: "IDLE requires proof — list last live smoke test timestamp, last curl results, last DB verification. If any is missing, NOT IDLE." Added rule: tasks completed with failures in description = NOT completed.
+
+**Rule:** Before declaring IDLE, the orchestrator MUST have started the app on a real instance (Aspire/Docker), curled every endpoint, and verified responses. "Tests pass" is necessary but not sufficient. Live smoke testing is the final gate before IDLE.
+
+---
+
+## 24. Tasks marked "completed" with failures are NOT completed
+
+**What happened:** QA curl tasks were marked "completed" with descriptions like "8/9 FAIL" and "1/5 PASS." The orchestrator treated these as done because the task agent had finished its work. But a task with failures is not done — it needs a fix agent dispatched, retested, and verified GREEN before marking complete.
+
+**Root cause:** Confusion between "agent finished" and "task objective met." An agent reports results; the orchestrator decides if the objective is achieved. If the objective was "all endpoints return 200" and the result is "8 return 500", the task has FAILED, not completed.
+
+**Fix:** Added rule: a task completed with failures = NOT completed. Reopen it, dispatch a fix agent, verify GREEN, THEN mark completed. The orchestrator must verify task outcomes, not just agent completion.
+
+**Rule:** Task completion requires the Definition of Done to be met. Agent completion is not task completion. Failed tests, 500 errors, and partial results mean the task stays open.
