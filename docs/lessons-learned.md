@@ -217,3 +217,51 @@
 **Fix:** Before building a new module, visit a real user site (clinic, office, warehouse — whatever the domain). Spend 2-4 hours observing actual workflows. The features that come from observation are the ones that differentiate the product.
 
 **Rule:** The best features come from observation, not imagination. Visit real users before writing specs. The PO agent can structure what you observe, but it can't observe for you.
+
+---
+
+## 19. Orchestrator must NEVER write implementation code
+
+**What happened:** During the NOVA medical SaaS project kickoff, the orchestrator agent directly modified SharedKernel files (Entity.cs, AggregateRoot.cs), created a Migrations project, and edited Aspire configuration. The user had to intervene: "Tu n'es qu'orchestrateur. Tu dispatches, evalues, facilites, arbitres." The orchestrator was doing dev work instead of dispatching.
+
+**Root cause:** The orchestrator saw "simple" foundation changes and shortcut the dispatch process. It rationalized: "this is infrastructure setup, not feature code." But ANY implementation work — even foundation setup — should be dispatched to dev agents. The orchestrator's value is coordination, not coding.
+
+**Fix:** Added explicit rule to orchestrator.md: "You NEVER write implementation code. Even foundation/infrastructure changes are dispatched to dev agents. The only files you create are task files, question files, and progress updates."
+
+**Rule:** The orchestrator writes ZERO lines of implementation code. If it touches a .cs, .ts, .py, .go file — it's wrong. Dispatch a dev agent instead. No exceptions for "simple" changes.
+
+---
+
+## 20. Dispatch test agents in parallel with code agents during large refactors
+
+**What happened:** During a long-to-Guid ID migration affecting all 5 modules, the orchestrator initially dispatched 4 agents for code layers (Domain, Application, Contracts, Api) but forgot the 11 test projects. The user had to remind: "tu n'as pas oublie de dispatch des dizaines d'agents en parallele sur tous les tests?" This delayed the refactor by an entire agent wave.
+
+**Root cause:** The orchestrator focused on "making the code compile" and treated tests as a follow-up step. But in a large refactor, tests are equally impacted and equally parallelizable. Every test project is independent and can have its own agent.
+
+**Fix:** For large cross-cutting refactors, dispatch agents for ALL affected projects simultaneously — code AND tests. Each test project gets its own agent. Don't wait for code agents to finish before starting test agents.
+
+**Rule:** During large refactors, tests are first-class citizens. Dispatch test agents in the SAME wave as code agents, not as a follow-up wave. One agent per test project = maximum parallelism.
+
+---
+
+## 21. Establish branch strategy BEFORE any code changes
+
+**What happened:** The orchestrator started modifying files on the main branch before creating a feature branch. Changes had to be stashed and moved to a new branch after the fact. The user also corrected the initial branch name because the scope was the entire project, not just the current phase.
+
+**Root cause:** The orchestrator was eager to start coding (which it shouldn't have been doing anyway — see lesson 19) and skipped the branching step. Branch strategy should be the FIRST action before any file modifications.
+
+**Fix:** Added to orchestrator cycle: Before dispatching ANY work, verify the branch strategy exists. Create the base feature branch if needed. All agent worktrees branch from this base, not from main.
+
+**Rule:** Branch first, code second. Establish the base branch before ANY file modifications. Name the branch for the full scope of work, not just the current phase.
+
+---
+
+## 22. Domain purity — new infrastructure built from Domain, not adapted from legacy
+
+**What happened:** During analysis of a SQL Server to PostgreSQL migration, the initial approach was to "migrate" the existing infrastructure (stored procedures, ADO.NET patterns, legacy column names). The user corrected: "Le Domain est pur et fait foi. On construit une couche Infrastructure NEUVE basee uniquement sur le Domain." This completely changed the approach — from adapting legacy code to building fresh from the domain model.
+
+**Root cause:** The natural instinct was to preserve and adapt existing code. But when the existing infrastructure is fundamentally different (stored procedures vs EF Core LINQ, SQL Server vs PostgreSQL), adapting carries over unnecessary complexity and legacy patterns. The domain model is the contract — the infrastructure serves it, not the other way around.
+
+**Fix:** When replacing an infrastructure layer, always start from the Domain interfaces and entities. Read only the Domain to understand what persistence is needed. Do NOT read the old Infrastructure as a reference — it will pollute the new design with legacy patterns.
+
+**Rule:** Domain is the source of truth for new infrastructure. Old infra is reference material for understanding what data exists, NOT a template for the new implementation. Build from the contract (Domain interfaces), not from the implementation (old repositories).

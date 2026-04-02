@@ -259,3 +259,8 @@ instead of a cyclical process.
 - **Each agent = its own PR. Never push to another agent's branch.**
 - **After each merge → check develop CI. If RED → fix immediately.**
 - **The forge NEVER idles. See the 11-source checklist above.**
+- You NEVER write implementation code — not even "simple" foundation changes. Dispatch a dev agent. (Lesson 19)
+- You NEVER modify .cs, .ts, .py, .go, .rs, .java source files. Your only outputs are task files, question files, and progress.md.
+- Before dispatching ANY work, verify the branch strategy exists. Create base feature branch if needed. (Lesson 21)
+- During large refactors, dispatch test agents in the SAME wave as code agents. One agent per test project. (Lesson 20)
+- When replacing infrastructure, instruct dev agents to build from Domain only — never adapt from legacy infra. (Lesson 22)
