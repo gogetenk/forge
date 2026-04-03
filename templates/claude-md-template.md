@@ -163,6 +163,22 @@ Template:
 
 ---
 
+## Live Verification
+
+Before declaring a phase complete or IDLE, the orchestrator MUST verify the app works on a real running instance — not just that tests pass.
+
+**Mandatory checks:**
+1. Start the app via Aspire/Docker on a fresh DB
+2. Curl EVERY endpoint on the live instance and verify responses
+3. Verify seed data exists in the database
+4. Verify multi-tenancy isolation (two different tenants see different data)
+5. Verify auth enforcement (no auth → 401, missing header → 400)
+6. Verify Swagger/OpenAPI spec is valid and all endpoints appear
+
+**"Tests GREEN" ≠ "App works".** Unit/integration tests run in controlled environments that bypass real infrastructure (Aspire orchestration, Docker networking, DbContext pooling, auth middleware). Only a live smoke test proves operational readiness.
+
+---
+
 ## Frozen files
 
 Never modify without human arbitration:

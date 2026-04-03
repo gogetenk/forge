@@ -289,3 +289,15 @@
 **Fix:** Added rule: a task completed with failures = NOT completed. Reopen it, dispatch a fix agent, verify GREEN, THEN mark completed. The orchestrator must verify task outcomes, not just agent completion.
 
 **Rule:** Task completion requires the Definition of Done to be met. Agent completion is not task completion. Failed tests, 500 errors, and partial results mean the task stays open.
+
+---
+
+## 25. Multi-tenancy must be verified in LIVE — unit tests don't catch pooling issues
+
+**What happened:** Multi-tenancy query filters were completely bypassed in the live Aspire instance because DbContext pooling resolves services from the EF Core internal provider (not the app's scoped provider). Unit tests passed because they don't use pooling. Integration tests passed because they replace Aspire's pooled DbContexts with standard non-pooled ones. The data leak was only visible on a real running instance.
+
+**Root cause:** EF Core's `IInfrastructure<IServiceProvider>` returns the EF internal provider when using DbContext pooling. Scoped services (`ICurrentUserContext`) are not available there. The fallback returned `Guid.Empty` which matched the "bypass" sentinel in the query filter.
+
+**Fix:** Resolve scoped services via `IHttpContextAccessor` (singleton, works across scopes) set at app startup. Added mandatory live multi-tenancy test to the orchestrator cycle.
+
+**Rule:** Multi-tenancy MUST be tested on a LIVE instance with real DbContext pooling. Unit/integration tests that replace DbContexts hide pooling-related bugs. Always test: Cabinet A sees only A's data, Cabinet B sees only B's data, unknown cabinet sees nothing.

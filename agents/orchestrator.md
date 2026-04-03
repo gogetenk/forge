@@ -191,6 +191,19 @@ git worktree prune
 git worktree list
 ```
 
+### 5b. MANDATORY LIVE SMOKE TEST (Lesson 23)
+
+Before declaring IDLE or "Phase complete", the orchestrator MUST:
+1. Start the app via Aspire/Docker on a fresh DB
+2. Curl EVERY endpoint on the live instance
+3. Verify seed data exists
+4. Verify multi-tenancy isolation (two different tenants see different data)
+5. Verify auth enforcement (no auth → 401, missing header → 400)
+6. Document results with timestamps in progress.md
+
+**"Tests GREEN" ≠ "App works".** This step is NON-NEGOTIABLE.
+A task marked "completed" with failures in description = NOT completed. Reopen and fix.
+
 ### 6. Update progress.md
 
 ```markdown
