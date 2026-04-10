@@ -46,6 +46,28 @@ gh pr list --state open
 
 ### 2. Dispatch dev agents on available tasks
 
+**Pre-dispatch checklist (MANDATORY before EVERY Agent call):**
+
+```
+Before dispatching, the orchestrator MUST complete this checklist.
+Skipping it = process failure. No exceptions.
+
+1. LIST: What are the failing tests / work items?
+2. GROUP: What are the independent root causes? (1 root cause = 1 code change)
+3. MAP: For each root cause, which FILES need to change?
+4. OVERLAP: Do any root causes touch the same files?
+   - No overlap → dispatch N agents in parallel (1 per root cause)
+   - Overlap → sequence only the overlapping ones, parallelize the rest
+5. CHECK: Am I about to dispatch 1 agent for >2 root causes?
+   → STOP. Split into multiple agents. The only valid exception is
+     when ALL root causes touch the exact same file.
+```
+
+**Why this exists:** The forge repeatedly dispatched single agents for broad tasks
+("fix all 14 BDD failures", "fix remaining 4 failures") instead of parallelizing
+by root cause. This made the forge 2-5x slower than necessary. One root cause =
+one agent = maximum parallelism.
+
 **Dispatch rules:**
 
 For each `todo-*.md` file:
@@ -69,6 +91,31 @@ Frontend and backend run IN PARALLEL on the same feature.
 Before dispatching N agents in parallel, check their file scopes don't overlap.
 If two tasks touch the same components → sequence them, don't parallelize.
 
+**Merge strategy for same-file tasks:**
+
+When multiple parallel tasks modify the same files (detected too late or unavoidable):
+1. Each agent works in its own worktree
+2. The orchestrator merges all worktrees into **1 branch → 1 PR**:
+   - Create a combined branch `feat/wave-{N}-{scope}`
+   - Merge each worktree sequentially, resolving conflicts
+   - Build + test the combined result
+   - Create 1 PR to develop
+3. Alternative: dispatch same-file tasks **sequentially** (wait for merge of each PR before dispatching the next)
+
+**Why:** separate PRs on the same files cause cascading merge conflicts. After merging the 1st, all others need conflict resolution → wasted cycles.
+
+**Agent status protocol:**
+
+Each agent MUST end with an explicit status in its result:
+
+| Status | Meaning | Orchestrator action |
+|---|---|---|
+| `DONE` | Task complete, PR created, tests green | Mark done, monitor PR |
+| `DONE_WITH_CONCERNS` | Complete but doubts identified | Mark done, create PO question |
+| `NEEDS_CONTEXT` | Blocked by missing business info | Create PO question, keep as WIP |
+| `BLOCKED` | Blocked by technical issue | Analyze, retry or escalate |
+| `FAILED` | 3 attempts failed (circuit breaker) | Reset to TODO, create question |
+
 ### 3. Detect wire tasks to create
 
 When a `done-back-{module}-*` AND a `done-front-{module}-*` both exist
@@ -87,7 +134,35 @@ For each open PR created by an agent:
 gh pr checks <num>
 ```
 
-**5a. Check Copilot comments BEFORE merging (mandatory)**
+**5a. Dispatch Evaluator on completed agent work (mandatory)**
+
+When a dev agent reports DONE or DONE_WITH_CONCERNS:
+1. Dispatch the Evaluator agent with worktree path, task content, and agent report
+2. Wait for Evaluator result
+3. If EVAL_PASS → proceed to merge checks (5b+, 5c+)
+4. If EVAL_FAIL → create fix task, re-dispatch dev agent with evaluator feedback
+5. If EVAL_PASS_WITH_NOTES → proceed to merge, create follow-up task for noted issues
+
+**The orchestrator NEVER merges without evaluator approval.**
+
+Why: Dev agents self-report DONE even with bugs. In one session, 4 blockers were found
+by a post-hoc QA review that dev agents missed (hardcoded values, untranslated strings,
+wrong API URLs, missing required fields). The evaluator catches these before merge.
+
+**5b. Auto-address code review comments (Copilot, SonarCloud, etc.)**
+
+Before merging any PR, the orchestrator MUST:
+1. Wait ~2min after push for automated reviewers
+2. Read PR comments: `gh api repos/{owner}/{repo}/pulls/{num}/comments`
+3. If automated reviewers (Copilot, SonarCloud) have suggestions:
+   - Dispatch an agent to apply pertinent suggestions
+   - Agent pushes fix on the same branch
+   - Re-check after fix
+4. Only merge when automated review comments are addressed
+
+**Never merge with unaddressed automated review comments.**
+
+**5c. Check Copilot comments BEFORE merging (mandatory)**
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/{num}/reviews
@@ -97,7 +172,7 @@ gh api repos/{owner}/{repo}/pulls/{num}/comments
 - If Copilot has pertinent suggestions → do NOT merge
 - Notify: "PR #{num} has Copilot suggestions. Click 'Apply all suggestions' on GitHub."
 
-**5b. Dispatch QA + Designer on frontend PRs (mandatory)**
+**5d. Dispatch QA + Designer on frontend PRs (mandatory)**
 
 For each frontend PR with GREEN checks and Copilot handled:
 1. Dispatch a QA agent (`agents/qa.md`):
@@ -116,12 +191,12 @@ For each frontend PR with GREEN checks and Copilot handled:
 
 For **backend-only** PRs: only QA is required (no Designer).
 
-**5c. Merge if all OK**
+**5e. Merge if all OK**
 
-- If all checks GREEN AND Copilot handled AND QA_DONE AND (DESIGN_OK or backend-only) → merge (`gh pr merge <num> --squash --delete-branch`)
+- If all checks GREEN AND Evaluator EVAL_PASS AND Copilot handled AND QA_DONE AND (DESIGN_OK or backend-only) → merge (`gh pr merge <num> --squash --delete-branch`)
 - **After each merge: check develop CI within 2 minutes**
 
-**5d. Conflict resolution — merge-based, not rebase**
+**5f. Conflict resolution — merge-based, not rebase**
 
 ```bash
 # CORRECT — merge origin/develop into the branch
@@ -131,7 +206,7 @@ git merge origin/develop
 git rebase origin/develop
 ```
 
-**5e. Cleanup worktrees after merge**
+**5g. Cleanup worktrees after merge**
 
 ```bash
 git worktree prune
@@ -155,26 +230,67 @@ git worktree list
 ## The forge NEVER idles (lesson learned)
 
 **If 0 tasks todo AND 0 active agents, the orchestrator MUST find work.**
-Never respond "idle" or "waiting" without first checking ALL 10 sources:
+Never respond "idle" or "waiting" without first checking ALL 11 sources:
 
 1. **Unresolved audits** — read reports in docs/specs/*-AUDIT-*.md, check all critical/important findings are fixed
 2. **Pending refactoring** — read tasks/refacto/todo-*.md, dispatch the most critical
 3. **PO questions** — read questions/*.md, dispatch agents to answer
-4. **Missing tests** — handlers without unit tests, .feature without step definitions
-5. **UX audit** — dispatch UX Designer agent for a new cycle
-6. **Performance audit** — run if last one is older than a week
-7. **Security audit** — run if last one is older than a week
-8. **Business** — prepare launch deliverables (leads, outreach, content)
-9. **Innovation** — explore new ideas, R&D, market studies
-10. **Code quality** — lint warnings, dead code, unused deps, TypeScript strict
+4. **Missing tests** — handlers without unit tests, .feature without step definitions, endpoints without integration tests (empty scaffolds are bugs)
+5. **Wiring audit** — middleware annotations without registration, DI injections that resolve to null, consumers not discovered, config sections never read, disabled tests with implementations, @wip features with step definitions
+6. **UX audit** — dispatch UX Designer agent for a new cycle
+7. **Performance audit** — run if last one is older than a week
+8. **Security audit** — run if last one is older than a week
+9. **Business** — prepare launch deliverables (leads, outreach, content)
+10. **Innovation** — explore new ideas, R&D, market studies
+11. **Code quality** — lint warnings, dead code, unused deps, TypeScript strict
 
 **Idle is FORBIDDEN as long as any source has work.**
-A forge cycle that responds "idle" without checking all 10 sources = failure.
+A forge cycle that responds "idle" without checking all 11 sources = failure.
 
-Why this rule exists: During the Vetolib/Vetara build, the forge sat idle for hours
-responding "veille" while there were 4 unresolved UX critiques, 14 refacto tasks,
-8 lint warnings, and other actionable work. The founder had to manually tell the
-forge to stop idling. This must never happen again.
+**Anti-stagnation rule (v4.1):**
+
+An audit that produces findings WITHOUT creating tasks = unfinished work.
+An audit finding is NOT resolved until: (a) a task is created, (b) the task is dispatched, (c) the fix is merged, (d) a smoke test verifies the fix works. "Audited" does not mean "actioned."
+
+After each audit, the orchestrator MUST:
+1. Read the audit report
+2. Create `tasks/todo-*` for EVERY finding HIGH+ (not just CRITICAL)
+3. Dispatch independent tasks immediately
+4. Verify each fix after merge (run the relevant test or check)
+5. The 11 sources are **cyclical** — re-scan after each wave of merges
+6. "0 TODO" NEVER means "nothing to do" — it means "create tasks"
+
+**If backlog is empty and audits have untreated findings → create tasks.**
+**If tasks are created → dispatch agents.**
+**If agents complete → merge and re-scan.**
+**The cycle NEVER stops.**
+
+Why this rule exists: The forge sat idle for 9 hours polling CI while 7 audit reports
+contained 40+ actionable HIGH findings that were never converted to tasks. The orchestrator
+confused "audited" with "actioned" and treated the 10 sources as a one-shot checklist
+instead of a cyclical process.
+
+**Anti-idle protocol v2 (lesson learned 2026-04-10):**
+
+The forge responded "Stable. Watching." for 17 consecutive cycles while:
+- 4 BDD tests were RED (declared "hors scope" without human approval)
+- A new command handler had 0 tests (violated "each endpoint MUST have >=1 integration test")
+- A real bug existed (motif not visible in list after update)
+- The Patient module needed INS support to satisfy existing .feature scenarios
+
+Root cause: the orchestrator confused "my current task list is empty" with "no work exists."
+
+**New rules:**
+
+1. **Every cycle MUST dispatch at least 1 agent OR create a `questions/*.md` explaining why dispatch is impossible.** "Stable. Watching." is never an acceptable response.
+
+2. **"Hors scope" is FORBIDDEN without explicit human validation.** If a test is RED, the fix is in scope. Period. RED tests = work. Always.
+
+3. **TDD RED = the code is broken, not the test.** When BDD tests fail, fix the source code (src/), never weaken the tests. The only allowed step definition changes are technical wiring (ambiguous bindings, ScenarioContext plumbing).
+
+4. **2-cycle idle circuit breaker.** If the orchestrator dispatches 0 agents for 2 consecutive cycles, it MUST automatically run: (a) full test suite, (b) coverage audit (any handler without tests?), (c) code quality scan (TODO/FIXME grep), (d) security scan.
+
+5. **New code = new tests, always.** Every new handler, entity, or endpoint created by an agent MUST have tests before the cycle closes. If the agent didn't write them, the orchestrator creates a task and dispatches immediately.
 
 ---
 
@@ -186,4 +302,4 @@ forge to stop idling. This must never happen again.
 - **develop RED = everything blocked. Nothing happens until it's green.**
 - **Each agent = its own PR. Never push to another agent's branch.**
 - **After each merge → check develop CI. If RED → fix immediately.**
-- **The forge NEVER idles. See the 10-source checklist above.**
+- **The forge NEVER idles. See the 11-source checklist above.**
