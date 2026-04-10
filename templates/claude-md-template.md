@@ -36,6 +36,10 @@ Step 4: PR only when all Gherkin scenarios are GREEN
 
 An agent that opens a PR with red tests = PR rejected automatically.
 
+### 1b. Endpoint coverage mandatory
+
+Each endpoint MUST have at least 1 integration test. Empty scaffolds (endpoints that compile but return nothing meaningful) are bugs. If an endpoint exists, a test proves it works end-to-end through the DI pipeline.
+
 ### 1a. Feature file purity
 
 **.feature files are PO property.** A dev agent never creates or modifies a .feature file.
@@ -100,6 +104,37 @@ Block immediately and create `questions/{task-id}.md` if:
 - Need to modify frozen files
 - Two approaches have failed
 
+### 7a. Circuit breaker — 3 attempts max
+
+An agent debugging a problem has **3 maximum attempts** to resolve it.
+After 3 consecutive failures on the same problem:
+- **STOP immediately** — do not keep guessing
+- Create `questions/{task-id}-debug-{timestamp}.md` documenting:
+  - What was tried (the 3 approaches)
+  - Results/errors of each attempt
+  - Hypothesis on root cause
+- Report status `FAILED` and wait for human/PO input
+
+**Why:** an agent looping on a fix consumes context and budget without progressing.
+
+### 7b. Subagent tool access fallback
+
+Subagents in isolated worktrees may lose access to certain tools (e.g., Bash for git commands).
+When blocked:
+- Report status `BLOCKED` with **exact commands** to execute
+- The orchestrator executes the commands on behalf of the agent
+- Agent prompts should include: "If tool access is denied for git commands, list exact commands and report BLOCKED."
+
+### 7c. Schema migration audit
+
+After generating any database migration (EF Core, Prisma, Alembic, Knex, etc.), the agent MUST:
+1. **Read the generated migration file** and verify it matches intent
+2. **Check for phantom operations** (altering columns that were never created, dropping tables that shouldn't be dropped)
+3. **Verify companion/metadata files exist** (e.g., `.Designer.cs` for EF Core, snapshot files)
+4. **Run the framework's "has pending changes" command** to confirm no drift
+
+**Why:** auto-generated migrations can produce phantom operations when the snapshot diverges from the actual schema.
+
 ### 8. Commit convention
 
 ```
@@ -108,6 +143,39 @@ fix(module): fix description
 test(module): add test description
 refactor(module): refactor description
 ```
+
+### 9. Definition of Done (DOD) mandatory
+
+Every task file (`todo-*.md`) MUST include a `## Definition of Done` section with concrete, verifiable criteria. No subjective criteria ("clean code") — only binary checks the Evaluator agent can verify.
+
+The DOD is the contract between the dev agent and the evaluator. If a criterion is not in the DOD, the evaluator won't check it. If it IS in the DOD, the evaluator WILL check it and FAIL the evaluation if it's not met.
+
+Template:
+```
+## Definition of Done
+- [ ] Build passes (0 errors)
+- [ ] Tests pass (0 failures)
+- [ ] New handlers have unit tests (>=1 test per handler)
+- [ ] No hardcoded strings in UI (all through i18n)
+- [ ] data-testid on all interactive elements
+- [ ] DTO types match backend contracts
+```
+
+---
+
+## Live Verification
+
+Before declaring a phase complete or IDLE, the orchestrator MUST verify the app works on a real running instance — not just that tests pass.
+
+**Mandatory checks:**
+1. Start the app via Aspire/Docker on a fresh DB
+2. Curl EVERY endpoint on the live instance and verify responses
+3. Verify seed data exists in the database
+4. Verify multi-tenancy isolation (two different tenants see different data)
+5. Verify auth enforcement (no auth → 401, missing header → 400)
+6. Verify Swagger/OpenAPI spec is valid and all endpoints appear
+
+**"Tests GREEN" ≠ "App works".** Unit/integration tests run in controlled environments that bypass real infrastructure (Aspire orchestration, Docker networking, DbContext pooling, auth middleware). Only a live smoke test proves operational readiness.
 
 ---
 
@@ -124,6 +192,9 @@ Never modify without human arbitration:
 |---|---|---|
 | `guard-shared.sh` | Write/Edit | Blocks modification of frozen files |
 | `guard-feature.sh` | Write/Edit .feature | Blocks technical jargon |
+| `guard-wip-features.sh` | Bash `git push` | Blocks push if @wip features have step definitions |
+| `guard-merge-ci-green.sh` | Bash `gh pr merge` | Blocks merge if CI is RED on target branch |
+| `guard-bdd-first.sh` | Write/Edit handler/service | Warns when creating handlers without test specs |
 | `verify-before-push.sh` | Bash `git push` | Build + tests MUST pass |
 
 ---

@@ -16,7 +16,9 @@ Scenario: {scenario name}
   Then {expected outcome}
 ```
 
-## Completion criteria
+## Definition of Done
+- [ ] Build passes (0 errors)
 - [ ] Acceptance test scenarios GREEN
 - [ ] Unit + integration tests GREEN
+- [ ] {Add task-specific criteria here}
 - [ ] PR created towards develop
