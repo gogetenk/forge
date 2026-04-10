@@ -254,11 +254,28 @@ An audit finding is NOT resolved until: (a) a task is created, (b) the task is d
 
 After each audit, the orchestrator MUST:
 1. Read the audit report
-2. Create `tasks/todo-*` for EVERY finding HIGH+ (not just CRITICAL)
-3. Dispatch independent tasks immediately
+2. Create tasks and dispatch agents for **ALL findings** (CRITICAL, HIGH, AND MEDIUM). LOW can be batched.
+3. Dispatch ALL independent tasks in parallel — not 1 per cycle, ALL at once.
 4. Verify each fix after merge (run the relevant test or check)
 5. The 11 sources are **cyclical** — re-scan after each wave of merges
 6. "0 TODO" NEVER means "nothing to do" — it means "create tasks"
+
+**Anti-deferral rule (v4.2, learned 2026-04-10):**
+
+The orchestrator CANNOT create "follow-up" or "future" task files to defer known findings.
+If a finding is identified and actionable, it MUST be dispatched immediately.
+The only valid reason to defer is: **the human explicitly said to defer it.**
+
+Patterns that are FORBIDDEN:
+- "These are refinements, not on this PR" → FIX NOW
+- "Too many commits, risk of regression" → FIX NOW (tests catch regressions)
+- "Follow-up task for later" → FIX NOW
+- "Not blocking for merge" → FIX NOW
+- Dispatching 1 agent when 10 could run in parallel → DISPATCH ALL
+
+Why: The forge created a todo-feat001-followup.md file to defer 22 MEDIUM findings
+it was fully aware of. The user had to explicitly demand they be fixed. The forge
+should have dispatched all 16 fix agents immediately after the audit results came in.
 
 **If backlog is empty and audits have untreated findings → create tasks.**
 **If tasks are created → dispatch agents.**
