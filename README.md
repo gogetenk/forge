@@ -1,271 +1,175 @@
 <p align="center">
   <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Claude_Code-v2.1+-green.svg" alt="Claude Code">
-  <img src="https://img.shields.io/badge/Status-The_Forge_Never_Sleeps-orange.svg" alt="Status">
 </p>
 
 <h1 align="center">Forge</h1>
 
 <p align="center">
-  <strong>The factory that never sleeps.</strong><br>
-  While you're away, your agents keep building, testing, fixing, improving.<br>
-  You wake up to a better product than the one you left.
+  <strong>An autonomous-agent workflow for Claude Code.</strong><br>
+  Markdown files, bash hooks, and conventions that turn Claude Code<br>
+  into a continuous build/test/review/merge factory.
 </p>
 
 ---
 
-<p align="center">
-  <img width="512" alt="The Forge" src="https://github.com/user-attachments/assets/6bb29fc9-15b8-4a51-810a-60d77f088e51" />
-</p>
+## Case study — Altitracks
 
-<p align="center"><em>Rest here, traveler. The forge keeps burning.</em></p>
+**Altitracks** is a B2C trail-running coaching SaaS (GPX upload → personalised race-day roadbook + nutrition plan). It is the first commercial product built end-to-end with Forge. The numbers below are pulled from the live repository and the production database as of **2026-05-11**.
 
----
+### Project context
 
-## The promise
+| | |
+|---|---|
+| Domain | Trail running, predictive race-time + nutrition |
+| Stack | FastAPI · React/Vite · Supabase · Docker · GitHub Actions · Hetzner |
+| Repo bootstrap | 2026-02-13 |
+| Forge introduction | 2026-04-06 (commit `feat(modernization)…`) |
+| Observation window | 2026-02-13 → 2026-05-11 (87 calendar days) |
 
-**You describe what you want. You go to sleep. You wake up to a working product.**
+### Throughput
 
-That's it. That's Forge.
+| Metric | Value | Notes |
+|---|---:|---|
+| Total commits | **570** | `git log --oneline \| wc -l` |
+| Commits co-authored by Claude | **224 (39 %)** | `--grep="Co-Authored-By: Claude"` |
+| Active development days | **45 / 87** (52 %) | days with ≥ 1 commit |
+| Peak day | **57 commits** | 2026-04-14 |
+| 11-day burst (Apr 11 → 21) | **308 commits** | 28 commits/day average |
+| Net code delta | **+264 317 / −21 889 LOC** | shortstat aggregate over 570 commits |
+| Tracked files | **902** | `git ls-files \| wc -l` |
+| Lines of Python | **93 812** | 313 `.py` files |
+| Lines of JS/JSX | **29 251** | 144 `.js` / `.jsx` files |
+| SQL migrations | **30** | `doc/sql/0XX_*.sql`, idempotent, CI-checked monotonicity |
+| Test files | **190** | pytest + Playwright |
 
-No micro-managing agents. No babysitting builds. No "let me check if the tests pass." You light the forge, and it burns until there's nothing left to improve. Features get built, tests get written, bugs get found and fixed, UX gets polished — all while you sleep.
+### Pull-request hygiene
 
-The forge **never** goes out:
-- No more features to build? Agents start **testing** every screen.
-- No more bugs? Agents start **optimizing** performance.
-- Nothing to optimize? Agents **review** each other's code.
-- Still nothing? They **audit** accessibility, check responsive, validate the design system.
+| Metric | Value |
+|---|---:|
+| PRs opened | **315** |
+| PRs merged | **309 (98.1 %)** |
+| Average merge latency (recent waves) | < 30 min from agent DONE → squashed merge |
+| PRs explicitly addressing Copilot inline comments | **15 commits** (`chore: address Copilot feedback on #N`) |
+| Failed deploys requiring hotfix | **2 / 309** (migration-numbering collision, Caddyfile CSP) — both fixed within 1 cycle |
 
-The fire always has fuel.
+### Issues + bug surface
 
----
+| Metric | Value | Notes |
+|---|---:|---|
+| GitHub issues closed | **207** | feature + bug + chore + epic |
+| Issues labelled `type: bug` | **45** | ~ 14 % of total work |
+| EPICs left open by design | **2** | strategic meta-trackers (algorithm precision, growth roadmap) |
+| Open issues at observation date | **4** | 2 EPICs + 1 parked (paywall pre-req) + 1 blocked (dep chain) |
 
-## How it works (30 seconds)
+### Quality gates active in CI
 
-```
-Step 1:  You describe your project to the PO agent        →  /kickoff
-Step 2:  PO builds the full backlog via Q&A with you       →  .feature specs + task files
-Step 3:  You light the forge                               →  /loop 15m /forge
-Step 4:  Go to sleep.
-```
+| Gate | Purpose |
+|---|---|
+| `test` | full pytest + vitest suite (≈ 2 850 tests as of last run) |
+| `validate-model` | replays #382 golden set (35 races) against a frozen baseline run; blocks any algo PR that worsens MAPE, p90, red-zone, or per-confidence-band gates |
+| `check-compose-volumes` | verifies docker-compose volume contracts |
+| `test_doc_sql_migrations_idempotent` | enforces monotonic numbering + re-runnable SQL |
+| Caddy CSP | locked allowlist, expanded via PR when needed |
+| Copilot inline review | every PR; comments are applied or refused with an explicit rationale before merge |
 
-That's the last thing you do. From here, the forge runs itself:
+### Product reach (live production)
 
-```
- 00:00  Orchestrator wakes up. 12 tasks ready. Dispatches 12 agents.
- 00:15  8 PRs created. Copilot reviews them. 2 have suggestions → flagged.
- 00:30  QA agent tests 6 merged screens. Takes 47 screenshots.
-        Designer agent flags a button 2px off the grid.
- 00:45  Orchestrator creates fix task. Dev agent patches it in 3 minutes.
- 01:00  All green. Agents start testing edge cases.
- 01:15  QA finds a responsive bug on mobile. Fix dispatched.
- 01:30  Zero bugs. Agents review each other's code.
- ...
- 07:00  You wake up. 34 tasks done. 12 PRs merged. All tests green.
-        The forge kept the fire burning all night.
-```
+These numbers come from the Supabase production database at the observation date, **after** the work above shipped.
 
----
+| Funnel step | Users | % of signup | % of previous step |
+|---|---:|---:|---:|
+| Sign-up | **316** | 100 % | — |
+| Profile created | **268** | 85 % | 85 % |
+| Strava connected | **268** | 85 % | **100 %** |
+| Calibrations OK | **260** | 82 % | 97 % |
+| First analysis | **213** | 67 % | 82 % |
+| **Closed loop** (linked actual race) | **78** | **25 %** | **37 %** ← largest drop |
 
-## Key mechanisms (and why they exist)
+| Aggregate | Value |
+|---|---:|
+| Races analysed | **563** (247 retrospective + 316 predictive) |
+| Calibration runs ingested | **2 993** (95 % high-quality) |
+| Strava-connection rate among profiled users | **100 %** (268 / 268) |
+| Active leads collected (gated by analysis result) | **137** |
+| Paid conversions | **0** (beta gratuite, no paywall yet — by design) |
 
-### 📋 BDD-first: Gherkin specs are the leash
+> **Interpretation.** The hard drop is "first analysis → closed loop = 37 %". 135 users analysed a race but never linked their post-race Strava activity. This is the dominant friction of the learning-loop product, and the next product priority — measurable directly from this funnel, not from intuition.
 
-The PO writes acceptance criteria in Gherkin (`.feature` files) **before any code exists**. Dev agents receive these specs and have one job: make them pass. They can't deviate — if the Gherkin says "the appointment is confirmed", the agent can't decide to return a JSON payload instead. The spec IS the definition of done.
+### Headcount
 
-A hook (`guard-feature.sh`) **mechanically blocks** agents from writing technical jargon in specs. Without it, agents drift toward `the response status is 200` instead of `the operation succeeds`. We learned this the hard way — 52 HTTP codes ended up in our Gherkin before we added the hook.
+| Role | Commits | Notes |
+|---|---:|---|
+| Founder / PO / orchestrator | 401 | two git identities, same human |
+| External dev (front + e2e) | 142 | part-time, pre-Forge era + early Forge |
+| Claude (via Forge agents) | 224 | co-authored, not a separate commit author |
+| GitHub Copilot suggestions applied | 17 | bot-authored commits + 15 follow-up PRs |
 
-**Problem solved:** AI agents interpret requirements loosely. Gherkin + TDD forces them to implement exactly what was specified, nothing more, nothing less.
-
-### 📁 File-based tasks: faster than any ticket system
-
-Tasks are markdown files. `todo-auth-001.md` → `wip-auth-001.md` → `done-auth-001.md`. A `rename` is the state transition.
-
-Why not Jira/Linear/Trello? Because:
-- **Zero network latency** — the filesystem is instant, no API calls
-- **Atomic locking** — renaming a file is atomic on any OS. No race conditions
-- **Git-native** — tasks are versioned, diffable, searchable with grep
-- **Agent-readable** — no OAuth, no SDK, no API wrapper. Just `cat tasks/todo-*.md`
-- **Human-readable** — open the folder, see the state. No dashboard needed
-
-**Problem solved:** Agents need fast, reliable, zero-latency task coordination. The filesystem does this better than any SaaS.
-
-### 🔀 Worktree isolation: agents can't break each other
-
-Each agent works in its own `git worktree` — a separate checkout of the repo on its own branch. Agent A building auth can't accidentally overwrite Agent B's billing code. They share the same repo but never touch the same files.
-
-**Problem solved:** 10+ agents writing code simultaneously would create merge hell without isolation.
-
-### 🔒 Zero trust hooks: mechanical, not conventional
-
-Every critical rule has a bash hook that blocks violations **before they happen**:
-- Write to a frozen file? → Blocked by `guard-shared.sh`
-- Push without passing tests? → Blocked by `verify-before-push.sh`
-- Write HTTP codes in a Gherkin spec? → Blocked by `guard-feature.sh`
-
-**Problem solved:** AI agents don't follow conventions reliably. Mechanical blocks are the only reliable enforcement.
-
-### ⚡ MSW-first: frontend doesn't wait for backend
-
-Frontend agents start immediately with Mock Service Worker (MSW) — they build against a fake API. Backend agents build the real API in parallel. When both are done, a "wire" task connects them. This doubles the parallelism.
-
-**Problem solved:** Sequential front-then-back development wastes half the available agents.
+**One full-time founder + one part-time dev** produced a 902-file, 123 kLOC, 309-PR codebase with a working multi-region deploy and live users. The 224 Claude co-authors represent the multiplier — about 2× output during the Forge era — without an additional headcount line.
 
 ---
 
-## Requirements
+## Mechanisms — why this works
 
-### What you need
+Forge is not "Claude with extra steps". The properties below are what make the multiplier hold over weeks of continuous operation.
 
-- **[Claude Code CLI](https://claude.com/claude-code)** v2.1.72+ — this is the engine
-- **[Claude Max or Team plan](https://claude.com/pricing)** — Forge runs agents continuously, you need a plan with high usage limits. Max ($100/mo) gives you unlimited Claude Code usage. Team ($30/seat/mo) works for smaller projects but will hit rate limits faster with 10+ parallel agents. **Max is strongly recommended for the "forge never sleeps" experience.**
-- **Git + GitHub CLI** (`gh`) authenticated
-- **A GitHub repo with CI/CD** configured
+### 1. BDD-first, with mechanical enforcement
+The PO writes `.feature` files in natural-language Gherkin **before** any code exists. Dev agents make them pass. A `guard-feature.sh` hook **blocks** technical jargon (HTTP codes, route paths, "JWT", "endpoint") from landing in specs — without it, 52 HTTP codes leaked into our Gherkin in one early session.
 
-### Why Claude Max?
+### 2. File-based task lifecycle
+`todo-{id}.md` → `wip-{id}.md` → `done-{id}.md`. `git mv` is the atomic state transition. No SaaS task tracker, no API latency, no race conditions. Tasks are versioned, diffable, greppable.
 
-Forge dispatches **10+ agents in parallel**, each in its own context window. On a standard plan, you'll hit rate limits within minutes. Claude Max gives you:
-- Unlimited Claude Code usage (no rate limits)
-- The ability to run `/loop 15m /forge` overnight without interruption
-- The full "go to sleep, wake up to a finished product" experience
+### 3. Worktree isolation
+Each agent runs in its own `git worktree`. 18 agents writing different parts of the codebase at the same time, zero stomp. Merge conflicts surface explicitly at PR time and are resolved by a dedicated agent (3 conflicts handled in the last batch alone).
 
-Without Max, Forge still works — it just pauses when rate-limited and resumes when capacity frees up. The forge dims but doesn't go out.
+### 4. Zero-trust hooks (bash, not convention)
+| Hook | Blocks |
+|---|---|
+| `guard-shared.sh` | Writes to frozen files (`core/`, algo modules) |
+| `guard-merge-ci-green.sh` | `gh pr merge` while CI is red |
+| `verify-before-push.sh` | `git push` without local tests passing |
+| `guard-bdd-first.sh` | New handlers without a spec |
+| `guard-wip-features.sh` | Push that leaves `@wip` Gherkin with step defs |
+
+AI agents do not reliably follow conventions. They reliably hit bash exit-1 on hooks.
+
+### 5. MSW-first parallelism
+Frontend builds against Mock Service Worker while backend builds the real API. A "wire" task connects them once both `done-*`. Halves the critical path on any front-back feature pair.
+
+### 6. Mandatory Copilot loop
+Every PR ships with `--add-reviewer Copilot`. Before merge: read inline comments, dispatch a follow-up agent to apply or refuse them, push, re-check. Of 309 merges, every Copilot suggestion was either applied or explicitly refused with a rationale committed to the branch.
+
+### 7. Image-reading rule on issues
+Most product bugs are described in a screenshot, not the text. Forge has an explicit rule (CLAUDE.md) requiring agents to download every image attached to an issue (HTML `<img>`, Markdown `![]()`, bare user-attachments URLs, S3 presigned) via `curl -L -H "Authorization: token $(gh auth token)"` and `Read` it before coding. Without this rule, ~20 % of bug fixes ship against the wrong root cause.
+
+### 8. Validation gates for the algorithmic core
+A model-validation workflow replays a 35-race golden set against a frozen baseline on every algo PR. Any regression on MAPE / p90 / red-zone / per-confidence-band gates blocks the merge. This is the only thing standing between an agent trying to "improve" the algorithm and a silent quality drop in production.
 
 ---
 
 ## Getting started
 
-### 1. Install
-
 ```bash
 git clone https://github.com/gogetenk/forge.git
 cd your-project
 bash /path/to/forge/bin/forge-init.sh
-```
-
-The init script copies the forge structure into your project.
-
-### 2. Kickoff — configure agents and build your backlog
-
-```bash
 claude
-/kickoff
+/kickoff               # detects stack, runs PO Q&A, generates backlog
+/loop 15m /forge       # orchestrator cycle every 15 min
 ```
 
-The kickoff runs 5 phases:
+`/kickoff` runs 5 phases: detect stack → PO Q&A → instantiate agents → generate project files → build backlog (`.feature` + `todo-*.md` with deps).
 
-1. **Detect** — auto-detects your stack (Node.js, .NET, Python, Go, Rust), build/test commands, module structure, CI/CD
-2. **PO Q&A** — you describe your project in plain language, the PO agent asks clarifying questions
-3. **Instantiate agents** — templates from `templates/agents/` are customized for your stack and written to `.claude/agents/`
-4. **Generate project files** — CLAUDE.md, settings.json, hooks, directories
-5. **Build backlog** — `.feature` specs + `todo-*.md` task files with dependency graph
-
-**Don't rush step 2.** The better the PO understands your domain, the better the agents will build it.
-
-> **Manual setup alternative:** If you prefer to configure manually, copy templates from `templates/agents/` to `.claude/agents/`, replace the `{VARIABLES}` with your stack values, and customize `templates/claude-md-template.md` into your `CLAUDE.md`. The orchestrator (`agents/orchestrator.md`) works out of the box — no customization needed.
-
-### 3. Light the forge
-
-```bash
-/loop 15m /forge
-```
-
-Go grab a coffee. Or go to sleep. The forge takes it from here.
-
-See [`docs/getting-started.md`](docs/getting-started.md) for a full walkthrough with example session.
+Detailed walkthrough: [`docs/getting-started.md`](docs/getting-started.md). Lessons from production sessions: [`docs/lessons-learned.md`](docs/lessons-learned.md).
 
 ---
 
-## Autonomous mode: the forge that never sleeps
+## Requirements
 
-The real power of Forge is **autonomous continuous operation**. Here's how to set it up:
-
-### The loop
-
-```bash
-/loop 15m /forge
-```
-
-This runs the full orchestrator cycle every 15 minutes. It auto-expires after 3 days (Claude Code safety limit). To restart:
-
-```bash
-/loop 15m /forge   # just run it again
-```
-
-### What the orchestrator does each cycle
-
-1. **Checks develop CI** — if RED, everything stops until it's fixed
-2. **Scans tasks** — finds `todo-*.md` with satisfied dependencies
-3. **Dispatches agents** — max parallelism, each in its own worktree
-4. **Monitors WIP** — kills stuck agents after 45 min, retries
-5. **Reviews PRs** — reads Copilot comments, dispatches QA + Designer
-6. **Merges** — only when all gates pass (CI + Copilot + QA + Design)
-7. **Creates wire tasks** — auto-detects when front + back are done
-8. **Finds more work** — when tasks run out, creates QA/review/optimization tasks
-
-### The "never sleeps" behavior
-
-When all feature tasks are done, the orchestrator doesn't stop. It:
-- Dispatches **QA agents** to test every screen via Playwright (screenshots + video)
-- Dispatches **Designer agents** to audit visual consistency
-- Creates **fix tasks** from QA/Designer reports and dispatches dev agents
-- Runs **code review agents** looking for DRY violations, dead code, security issues
-- Audits **accessibility**, responsive design, performance
-- The cycle repeats until there's literally nothing left to improve
-
-**You can leave Forge running indefinitely.** It will keep your product getting better.
-
-### Why it works: the reinforcement feedback loop
-
-Forge isn't just "agents running in parallel." The real mechanism is a **self-reinforcing feedback loop** — the same concept behind reinforcement learning, continuous improvement (kaizen), and biological evolution.
-
-```
-     Build
-      ↓
-    Test ← QA agent finds bugs
-      ↓
-    Fix  ← Dev agent patches
-      ↓
-   Review ← Designer/Copilot catch regressions
-      ↓
-   Learn  ← Post-mortem → new hook/rule created
-      ↓
-    Build  (next cycle, with better guardrails)
-```
-
-Each cycle makes the system **structurally better**, not just the product:
-
-- **QA finds a pattern of bugs** (e.g., agents write HTTP codes in specs) → a **hook is created** to block it mechanically → the entire class of bugs disappears forever
-- **An agent goes rogue** (spends 45 min stuck) → the orchestrator **learns the timeout** → future stuck agents are killed faster
-- **A merge breaks develop** → a **post-mortem** produces a new rule → the rule gets a hook → it can never happen again
-
-This is fundamentally different from a human team, where lessons learned fade over time. In Forge, every lesson becomes a **permanent mechanical constraint**. The system's immune system gets stronger with every failure.
-
-The analogy: traditional development is like manual farming — you plant, tend, harvest, repeat. Forge is like a **self-improving greenhouse** — it grows the crop, monitors for pests, builds better walls when pests get through, and keeps running season after season. You just decide what to grow.
-
----
-
-## What is it, technically?
-
-Forge is a **process + tooling framework** for Claude Code. It's not a SaaS, not a platform — it's a set of markdown files, bash hooks, and conventions that turn Claude Code into an autonomous development factory.
-
-### Core principles
-
-| Principle | What it means |
-|---|---|
-| **The forge never sleeps** | Agents always find work — build, test, fix, optimize, review |
-| **Zero trust** | Every rule enforced by hooks/CI. Conventions fail with AI agents |
-| **BDD-first** | PO writes Gherkin specs. Agents make them pass. Nothing else |
-| **Isolation** | Each agent in its own git worktree. Can't break each other's work |
-| **Fail-fast** | Blocked? Write a question and stop. Never guess |
-
-### Numbers (Vetolib MVP — battle-tested)
-
-- **234+ tasks** completed in days, not weeks
-- **682 tests** — all green
-- **10+ agents** in parallel, zero conflicts
-- **46 screens** tested via Playwright overnight
-- **0 human lines of code** — only specs and reviews
+- **[Claude Code CLI](https://claude.com/claude-code)** v2.1+
+- **Claude Max** strongly recommended — Forge dispatches 10–20 parallel agents and burns through standard quotas in minutes
+- **Git + GitHub CLI** (`gh`) authenticated
+- **A GitHub repo with CI/CD** (Actions or equivalent)
 
 ---
 
@@ -273,93 +177,25 @@ Forge is a **process + tooling framework** for Claude Code. It's not a SaaS, not
 
 ```
 forge/
-├── bin/
-│   └── forge-init.sh              # Interactive setup wizard (auto-detects stack)
-├── docs/
-│   ├── forge-overview.md          # Full process doc with Mermaid diagrams
-│   ├── getting-started.md         # Zero to first build guide
-│   ├── lessons-learned.md         # Post-mortems from production sessions
-│   ├── troubleshooting.md         # Common issues and fixes
-│   └── roadmap.md                 # What's next
-├── agents/
-│   ├── orchestrator.md            # The conductor — never codes, always watches
-│   ├── po.md                      # Product Owner — writes specs, answers questions
-│   ├── qa.md                      # QA — Playwright screenshots, behavior validation
-│   └── designer.md                # Designer — visual consistency, design system
-├── hooks/
-│   ├── guard-bdd-first.sh         # Warns when creating handlers without test specs
-│   ├── guard-feature.sh           # Blocks technical jargon in specs
-│   ├── guard-merge-ci-green.sh    # Blocks merge if CI is RED on target branch
-│   ├── guard-shared.sh            # Blocks writes to frozen files
-│   ├── guard-wip-features.sh      # Blocks push if @wip features have step defs
-│   └── verify-before-push.sh      # Build + tests must pass before push
-├── templates/                     # Generated by forge-init.sh
-├── commands/                      # /kickoff, /forge, /dev, /status, /po
-└── examples/
-    ├── dotnet-nextjs/             # .NET + Next.js (battle-tested on Vetolib)
-    ├── node-react/                # Node.js + React + Cucumber.js
-    ├── python-fastapi/            # Python + FastAPI + behave
-    └── go-htmx/                   # Go + htmx + godog
+├── bin/forge-init.sh         # interactive setup, auto-detects stack
+├── agents/                   # orchestrator, po, qa, designer
+├── hooks/                    # bash guardrails (BDD, merge, push, frozen files)
+├── commands/                 # /kickoff, /forge, /dev, /po, /status
+├── templates/                # stack-agnostic agent + CLAUDE.md templates
+├── examples/                 # dotnet-nextjs, node-react, python-fastapi, go-htmx
+└── docs/                     # overview, getting-started, lessons-learned, troubleshooting
 ```
-
----
-
-## Adapting to your stack
-
-Forge is **stack-agnostic**. The orchestration (task lifecycle, agent dispatch, QA gates, hooks) works the same on any stack. You adapt:
-
-| What | Where |
-|---|---|
-| Build/test commands | `hooks/verify-before-push.sh` |
-| BDD framework | Reqnroll, Cucumber.js, behave, godog |
-| Frontend mocks | MSW or equivalent |
-| Frozen files | `hooks/guard-shared.sh` |
-
-See `examples/` for ready-to-use configs per stack.
-
----
-
-## FAQ
-
-**Q: Does this actually work?**
-A: Yes. Vetolib (a full veterinary clinic management SaaS) was built from scratch using Forge — 234 tasks, 682 tests, 46 screens, production-ready MVP in days. The process documented here is exactly what ran.
-
-**Q: How much does it cost?**
-A: Claude Max ($100/mo) for unlimited usage. A full MVP build typically runs for a few days of continuous operation. The ROI vs. hiring developers is significant.
-
-**Q: Can I use it with Cursor / Windsurf / other AI editors?**
-A: Forge is built specifically for Claude Code CLI. The agent dispatch, worktree isolation, and hook system are Claude Code features. Other editors would need their own adaptation.
-
-**Q: What if an agent goes rogue?**
-A: It can't. Every rule has a mechanical guardrail: hooks block bad writes, CI blocks bad pushes, the orchestrator kills stuck agents after 45 minutes, and the QA/Designer agents catch visual regressions before merge.
-
-**Q: Do I need to know how to code?**
-A: You need to understand your product (to write specs with the PO agent) and your stack (to set up CI/CD). You don't need to write code — the agents do that. But you should be able to read code during reviews.
 
 ---
 
 ## Contributing
 
-The forge is open. Contributions welcome — especially stack examples, hook improvements, and battle-tested troubleshooting tips.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+Issues and pull requests welcome — particularly stack examples, hook improvements, and post-mortems from production sessions. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
 ## Author
 
-**Yannis TOCREAU** — Creator of Forge.
-
-[@gogetenk](https://yannis.blog)
-
----
-<img width="1408" height="768" alt="image" src="https://github.com/user-attachments/assets/16e461bd-872e-4d63-8891-3d0f0af8c537" />
-
-<p align="center">
-  <em>Rest here, traveler. The forge keeps burning.</em><br>
-  <em>Your product gets better every hour, even while you dream.</em>
-</p>
-
----
+**Yannis TOCREAU** — [@gogetenk](https://yannis.blog)
 
 Apache License 2.0 — Copyright 2026 Yannis TOCREAU. See [NOTICE](NOTICE).
