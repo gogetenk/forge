@@ -102,7 +102,7 @@ forge/
 
 ## Case study — Altitracks
 
-**Altitracks** is a B2C trail-running coaching SaaS (GPX upload → personalised race-day roadbook + nutrition plan). It is the first commercial product built end-to-end with Forge. The numbers below are pulled from the live repository and the production database as of **2026-05-11**.
+**[Altitracks](https://altitracks.com)** is a B2C trail-running coaching SaaS (GPX upload → personalised race-day roadbook + nutrition plan). It is the first commercial product built end-to-end with Forge. The numbers below are pulled from the live repository and the production database as of **2026-05-11**.
 
 ### Project context
 
